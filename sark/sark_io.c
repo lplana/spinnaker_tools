@@ -161,76 +161,73 @@ static void io_put_str (char *stream, char *s, int d)
     io_put_char (stream, *s++);
 }
 
-
-// Put an integer (signed) in given field width, left-padding with
-// spaces. Entire field is assumed to fit in 16 chars!.
-
-static void io_put_int (char *stream, int n, uint d, uint pad) // pad not used!
+//! \brief converts some value into a string format as required
+//! \param[in] stream: the stream pointer to write to
+//! \param[in] number: the number to convert into text
+//! \param[in] d: ?????????????
+//! \param[in] pad: the text used in padding.
+//! \param[in] is_negative: flag which states if the string needs a negative
+//! part
+//! \param[in] size_of_string_output: the overall number of bytes to use for
+//!  the string converted number
+static void io_put_number(
+        char *stream, int number, uint d, uint pad, uint is_negative,
+        uint size_of_string_output)
 {
-  char s[16];
-  int i = 0;
-  uint neg = 0;
+    // resulting string
+    char str_rep[size_of_string_output];
+    int position = 0;
 
-  if (n < 0)
-    {
-      n = -n;
-      neg = '-';
+    // flip value if negative number
+    if (is_negative){
+        number = -number;
+    }
+    io_handle_decimal_bit(
+        number, position, stream, str_rep, is_negative, d, pad);
+
+//! \brief adds to a string rep the decimal side of a number. It also added to
+//! the stream.
+//! \param[in] stream: the stream pointer to write to
+//! \param[in] number: the number to convert into text
+//! \param[in] d: ?????????????
+//! \param[in] pad: the text used in padding.
+//! \param[in] is_negative: flag which states if the string needs a negative
+//! part
+//! \param[in] str_rep: the container for the string format of the number
+//! \param[in] position: the position within the string representation
+//! container for where to start adding from.
+//!  the string converted number
+static void io_handle_decimal_bit(
+        int number, int position, char *stream, char str_rep, uint is_negative,
+        uint d, uint pad)
+
+    // check if better with while true
+    do{
+        divmod_t r = sark_div10(number);
+        str_rep[position++] = r.mod + '0';
+        number = r.div;
+    }while(number != 0);
+
+	while (position > 0 && str_rep[--position] == '0'){
+	    continue;
     }
 
-  while (1)
-    {
-      divmod_t r = sark_div10 (n);
-
-      s[i++] = r.mod + '0';
-      n = r.div;
-      if (n == 0) break;
+	if (is_negative){
+	    str_rep[++position] = '-';
     }
 
-  while (i > 0 && s[--i] == '0')
-    continue;
-
-  if (neg)
-    s[++i] = neg;
-
-  while (d-- > i + 1)
-    io_put_char (stream, ' ');
-
-  while (i >= 0)
-    io_put_char (stream, s[i--]);
-}
-
-
-// Put an integer (unsigned) in given field width, left-padding with
-// spaces. Entire field is assumed to fit in 16 chars!.
-
-static void io_put_uint (char *stream, uint n, uint d, uint pad)
-{
-  char s[16];
-  int i = 0;
-
-  while (1)
-    {
-      divmod_t r = sark_div10 (n);
-
-      s[i++] = r.mod + '0';
-      n = r.div;
-      if (n == 0) break;
+	while (d-- > position + 1){
+	    io_put_char(stream, pad);
     }
 
-  while (i > 0 && s[--i] == '0')
-    continue;
-
-  while (d-- > i + 1)
-    io_put_char (stream, pad);
-
-  while (i >= 0)
-    io_put_char (stream, s[i--]);
+	while (position >= 0){
+	    io_put_char(stream, str_rep[position--]);
+    }
 }
 
 
 // Put a hex number in exactly the number of characters specified.
 // Truncates high digits if need be.
-
 static void io_put_zhex (char *stream, uint n, uint d)
 {
   for (int i = d - 1; i >= 0; i--)
@@ -240,7 +237,6 @@ static void io_put_zhex (char *stream, uint n, uint d)
 
 // Put an integer in hex in given field width, left-padding with
 // spaces. Entire field is assumed to fit in 16 chars!.
-
 static void io_put_hex (char *stream, uint n, uint d, uint pad)
 {
   char s[16];
@@ -300,74 +296,53 @@ static void io_put_ip (char *stream, uchar *s)
 static
 void io_put_fixed (char *stream, uint n, uint d, uint a, uint pad, int neg)
 {
-  char s[25];
-  int i = 0;
-  uint f = 0;
-  int c = 0;
+    char s[25];
+    int i = 0;
+    uint f = 0;
+    int c = 0;
 
-  // fractional part
+    // fractional part
 
-  f = n;
-  if (a > 12) // maximum precision of 12 to prevent overflow
-    a = 12;
-
-  while (i < a)
-    {
-      f &= 0x0000ffff;
-      f *= 10;
-      s[a - ++i] = (f >> 16) + '0';
+    f = n;
+    if (a > 12){ // maximum precision of 12 to prevent overflow
+        a = 12;
     }
 
-  //set carry for rounding
-
-  f &= 0x0000ffff;
-  f *= 10;
-  c = (f >> 16) > 4;
-
-  //carry any rounding
-
-  f = 0;
-  while ((c) && (f < a))
-    {
-      if (s[f] >= '9')
-	{
-	  s[f++] = '0';
-	}
-      else
-	{
-	  s[f++]++;
-	  c=0;
-	}
+    while (i < a){
+        f &= 0x0000ffff;
+        f *= 10;
+        s[a - ++i] = (f >> 16) + '0';
     }
 
-  // add decimal
+    //set carry for rounding
 
-  if (a)
-    s[i++] = '.';
+    f &= 0x0000ffff;
+    f *= 10;
+    c = (f >> 16) > 4;
 
-  // integer part
+    //carry any rounding
 
-  n = (n >> 16) + c; // add the carry
-
-  while (1)
-    {
-      divmod_t r = sark_div10 (n);
-
-      s[i++] = r.mod + '0';
-      n = r.div;
-      if (n == 0)
-	break;
+    f = 0;
+    while ((c) && (f < a)){
+        if (s[f] >= '9'){
+            s[f++] = '0';
+        }
+        else{
+            s[f++]++;
+            c=0;
+        }
     }
 
-  if (neg) {  // <drl add>
-    s[i++] = '-';
-  }  // </drl add>
+    // add decimal
 
-  while (d-- > (i+1))
-    io_put_char (stream, pad);
+    if (a)
+        s[i++] = '.';
 
-  while (i > 0)
-    io_put_char (stream, s[--i]);
+    // integer part
+
+    n = (n >> 16) + c; // add the carry
+
+    io_handle_decimal_bit(n, i, stream, s, neg, d, pad);
 }
 
  // <drl add>
@@ -382,158 +357,199 @@ static void io_put_ufixed (char *stream, uint n, uint d, uint a, uint pad)
 
 //------------------------------------------------------------------------------
 
-// Main "printf" routine. The first argument is a 'stream' which is either
-// a constant IO_BUF, IO_STD, IO_DBG, IO_NULL or a pointer to a character
-// array which will be filled in as in "sprintf". No checks for buffer overflow
-// are made for this latter case!
+//! \brief Main "printf" routine.
+//! \param[in] *stream:  a constant IO_BUF, IO_STD, IO_DBG, IO_NULL or a
+//! pointer to a character array which will be filled in as in "sprintf".
+//!  No checks for buffer overflow are made for this latter case!
+//! \param[in] *string_with_elements_to_format: ????? is either one of the below formats, or a
+//! list of possible formats???????
 
-// Formats are
-// %c - character
-// %s - string - can be eg %8s for right justification
-// %d - signed integer (also %8d, %06d, etc)
-// %u - signed integer (also %4u, %06u, etc)
-// %x - integer in hex (also %4x, %08x, etc)
-// %4z - integer in hex, exactly N digits
-// %n.mf -  16.16 (Paul Richmond's) fixed point with width n, precision m
-// %n.mr -  s0.15 ISO fract fixed point with width n, precision m
-// %n.mR -   0.16 ISO unsigned fract fixed point with width n, precision m
-// %n.mk - s16.15 ISO accum fixed point with width n, precision m
-// %n.mK -  16.16 ISO unsigned accum fixed point with width n, precision m
+//! Formats are
+//! %c - character
+//! %s - string - can be eg %8s for right justification
+//! %d - signed integer (also %8d, %06d, etc)
+//! %u - signed integer (also %4u, %06u, etc)
+//! %x - integer in hex (also %4x, %08x, etc)
+//! %4z - integer in hex, exactly N digits
+//! %n.mf -  16.16 (Paul Richmond's) fixed point with width n, precision m
+//! %n.mr -  s0.15 ISO fract fixed point with width n, precision m
+//! %n.mR -   0.16 ISO unsigned fract fixed point with width n, precision m
+//! %n.mk - s16.15 ISO accum fixed point with width n, precision m
+//! %n.mK -  16.16 ISO unsigned accum fixed point with width n, precision m
+//! %n.mlK - s32.31 unsigned long accum fixed point with width n, precision m
+//! %n.mlk - s32.31 long accum fixed point with width n, precision m
 
-void io_printf (char *stream, char *f, ...) 
+void io_printf (char *stream, char *string_with_elements_to_format, ...)
 {
-  va_list ap;
- 
-  if (stream == IO_NULL)
-    return;
 
-  if (stream > IO_NULL)
-    sp_ptr = stream[0] = 0;
+    // create a container for the extra args
+    va_list ap;
 
-  va_start (ap, f);
+    // if no stream selected, just return as nothing to do
+    if (stream == IO_NULL){
+        return;
+    }
 
-  while (1)
-    {
-      char c = *f++;
+    // set local stream pointer to correct stream
+    if (stream > IO_NULL){
+        sp_ptr = stream[0] = 0;
+    }
 
-      if (c == 0)
-	return;
+    // setup the extra args iterator
+    va_start (ap, string_with_elements_to_format);
 
-      if (c != '%')
-	{
-	  io_put_char (stream, c);
-	  continue;
-	}
+    // iterate though all the extra args as required
+    while (1){
 
-      c = *f++;
+        // get the next char of the format string
+        char c = *string_with_elements_to_format++;
 
-      if (c == 0)
-	return;
+        // if the letter in the string is the end of string character, drop
+        // out, as finished writing to stream.
+        if (c == 0){
+            return;
+        }
 
-      char pad = ' ';
+        // if not a % sign, the data is a string so just dump it into stream
+        if (c != '%'){
+            io_put_char(stream, c);
+            continue;
+        }
 
-      if (c == '0')
-	pad = c;
+        // get next char of the format string
+        c = *string_with_elements_to_format++;
 
-      uint size = 0;
+        // hard coded pad to start with
+        char pad = ' ';
 
-      while (c >= '0' && c <= '9')
-	{
-	  size = 10 * size + c - '0';
-	  c = *f++;
-	  if (c == 0)
-	    return;
-	}
+        // update pad with '0' ???
+        if (c == '0'){
+            pad = c;
+        }
 
-#ifdef SPINN_IO_FIX
-      uint precision = 6;
-
-      if (c == '.')
-	{
-	  precision = 0;
-	  c = *f++;
-
-	  while (c >= '0' && c <= '9')
-	    {
-	      precision = 10 * precision + c - '0';
-	      c = *f++;
+        // if the letter in the string is the end of string character, drop
+        // out, as finished writing to stream.
+        if (c == 0){
+	        return;
 	    }
 
-	  if (c == 0)
-	    return;
-	}
-#endif
+        // calculate the size of the data item in chars
+        uint size = 0;
+        while (c >= '0' && c <= '9'){
+            size = 10 * size + c - '0';
+            c = *string_with_elements_to_format++;
 
-#ifdef SPINN_IO_NET
-      uint t;
-#endif
+            // if you run out of parts of the string, something was wrong,
+            // so just return
+            if (c == 0){
+                return;
+            }
+        }
 
-      switch (c)
-	{
-	case 'c':
-	  io_put_char (stream, va_arg (ap, uint));
-	  break;
-
-	case 's':
-	  io_put_str (stream, va_arg (ap, char *), size);
-	  break;
-
-	case 'd':
-	  io_put_int (stream, va_arg (ap, int), size, pad);
-	  break;
-
-	case 'u':
-	  io_put_uint (stream, va_arg (ap, uint), size, pad);
-	  break;
+//using fixed point stuff
 #ifdef SPINN_IO_FIX
-        case 'f': // Paul Richmond's FP format (u1616)
-// <drl add>
-        case 'K': // ISO unsigned accum (u1616)
-	  io_put_ufixed
-	    (stream, va_arg (ap, uint), size, precision, pad);
-	  break;
-        case 'r': // ISO signed fract (s015)
-	  io_put_sfixed (stream, va_arg (ap, int), size, precision, pad);
-	  break;
-        case 'R': // ISO unsigned fract (u016)
-	  io_put_ufixed (stream, va_arg (ap, uint), size, precision, pad);
-	  break;
-        case 'k': // ISO signed accum (s1615)
-	  io_put_sfixed (stream, va_arg (ap, int), size, precision, pad);
-	  break;
+
+        // assumed precision is 6 chars long
+        uint precision = 6;
+
+        // check that next char is a fixed point, which if is, calculate
+        // precision level.
+        if (c == '.'){
+            precision = 0;
+            c = *string_with_elements_to_format++;
+
+            while (c >= '0' && c <= '9'){
+                precision = 10 * precision + c - '0';
+                c = *string_with_elements_to_format++;
+            }
+
+            // if you run out of parts of the string, something was wrong,
+            // so just return
+            if (c == 0){
+                return;
+            }
+        }
+#endif
+
+// ??????????????????
+#ifdef SPINN_IO_NET
+        uint t;
+#endif
+
+        // select correct function to call based off next format chars
+        switch (c)
+        {
+            case 'c': // character to add
+                io_put_char (stream, va_arg (ap, uint));
+                break;
+            case 's': // string to add
+                io_put_str (stream, va_arg (ap, char *), size);
+                break;
+            case 'd': // a signed int to add
+
+                // set up signed specific stuff
+                pad = ' ';
+                int value = va_arg (ap, int);
+                uint is_negative = value < 0;
+
+                // call print number
+                io_put_number(stream, value, size, pad, is_negative, 16);
+                break;
+            case 'u': //  a unsigned int
+                io_put_number(stream, va_arg(ap, uint), size, pad, 0, 16);
+                break;
+// fixed point stuff
+#ifdef SPINN_IO_FIX
+            case 'f': // Paul Richmond's FP format (u1616)
+                 // <drl add>
+            case 'K': // ISO unsigned accum (u1616)
+                io_put_ufixed(
+                    stream, va_arg (ap, uint), size, precision, pad);
+                break;
+            case 'r': // ISO signed fract (s015)
+                io_put_sfixed(
+                    stream, va_arg (ap, int), size, precision, pad);
+                break;
+            case 'R': // ISO unsigned fract (u016)
+                io_put_ufixed(
+                    stream, va_arg (ap, uint), size, precision, pad);
+                break;
+            case 'k': // ISO signed accum (s1615)
+                io_put_sfixed(
+                    stream, va_arg (ap, int), size, precision, pad);
+                break;
 // </drl add>
 #endif
-	case 'x': // hex, digits as needed
-	  io_put_hex (stream, va_arg (ap, uint), size, pad);
-	  break;
-
-	case 'z': // zero prefixed hex, exactly "size" digits
-	  io_put_zhex (stream, va_arg (ap, uint), size);
-	  break;
+            case 'x': // hex, digits as needed
+                io_put_hex (stream, va_arg (ap, uint), size, pad);
+                break;
+            case 'z': // zero prefixed hex, exactly "size" digits
+                io_put_zhex (stream, va_arg (ap, uint), size);
+                break;
 #ifdef SPINN_IO_NET
-	case 'h': // pointer to network short (hex)
-	  t = va_arg (ap, uint);
-	  t = * (ushort *) t;
-	  io_put_zhex (stream, ntohs (t), size);
-	  break;
+            case 'h': // pointer to network short (hex)
+                t = va_arg (ap, uint);
+                t = * (ushort *) t;
+                io_put_zhex (stream, ntohs (t), size);
+                break;
 
-	case 'i': // pointer to network short (decimal)
-	  t = va_arg (ap, uint);
-	  t = * (ushort *) t;
-	  io_put_uint (stream, ntohs (t), size, pad);
-	  break;
+            case 'i': // pointer to network short (decimal)
+                t = va_arg (ap, uint);
+                t = * (ushort *) t;
+                io_put_uint (stream, ntohs (t), size, pad);
+                break;
 
-	case 'p': // pointer to IP address
-	  io_put_ip (stream, va_arg (ap, uchar *));
-	  break;
+            case 'p': // pointer to IP address
+                io_put_ip (stream, va_arg (ap, uchar *));
+                break;
 
-	case 'm': // pointer to MAC address
-	  io_put_mac (stream, va_arg (ap, uchar *));
-	  break;
+            case 'm': // pointer to MAC address
+                io_put_mac (stream, va_arg (ap, uchar *));
+                break;
 #endif
-	default:
-	  io_put_char (stream, c);
-	}
+            default:
+                io_put_char (stream, c);
+        }
     }
   //  va_end (ap);
 }
