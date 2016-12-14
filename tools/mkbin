@@ -5,21 +5,17 @@
 
 use strict;
 use warnings;
-
-die "bad args\n" unless $#ARGV == 1 && -r $ARGV[0] && -r $ARGV[1];
-
-open my ($fh), "<", $ARGV[0] or die;
-binmode($fh);
-my $len_ro = sysread $fh, my ($buf_ro), 65536;
-close $fh;
-
-open $fh, "<", $ARGV[1] or die;
-binmode($fh);
-my $len_rw = sysread $fh, my ($buf_rw), 65536;
-close $fh;
-
-my $pad_ro = (($len_ro & 3) != 0) ? 4 - ($len_ro & 3) : 0;
-my $pad_rw = (($len_rw & 3) != 0) ? 4 - ($len_rw & 3) : 0;
+my $fh;
 
 binmode(STDOUT);
-print $buf_ro, chr(0) x $pad_ro, $buf_rw, chr(0) x $pad_rw;
+while (defined $ARGV[0])
+{
+    my $arg = shift @ARGV;
+    open $fh, "<", $arg or die "Could not open", $arg;
+    binmode($fh);
+    my $len = sysread $fh, my ($buf), 65536;
+    my $pad = (($len & 3) != 0) ? 4 - ($len & 3) : 0;
+    close $fh;
+    
+    print $buf, chr(0) x $pad
+}

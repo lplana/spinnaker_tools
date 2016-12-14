@@ -15,6 +15,9 @@ DEBUG := 1
 # Set to 1 if making a library (advanced!)
 LIB := 0
 
+# Set to 1 if IO routines should be in SDRAM to save ITCM (advanced - GNU only)
+IO_SDRAM := 0
+
 # Prefix for GNU tool binaries
 GP := arm-none-eabi
 
@@ -51,7 +54,7 @@ ifeq ($(GNU),1)
 
     # GNU Compiler (gcc) settings
     AS := $(GP)-as --defsym GNU=1 -mthumb-interwork -march=armv5te
-    CC_NO_THUMB  := $(GP)-gcc -c -mthumb-interwork -march=armv5te -std=gnu99 -I $(SPINN_INC_DIR)
+    CC_NO_THUMB  := $(GP)-gcc -c -mthumb-interwork -march=armv5te -std=gnu99 -I $(SPINN_INC_DIR) -fmerge-debug-strings
     CXX_NO_THUMB := $(GP)-gcc -c -mthumb-interwork -march=armv5te -std=c++11 -I $(SPINN_INC_DIR) -fno-rtti -fno-exceptions
     CC_THUMB  := $(CC_NO_THUMB) -mthumb -DTHUMB
     CXX_THUMB := $(CXX_NO_THUMB) -mthumb -DTHUMB
@@ -63,7 +66,12 @@ ifeq ($(GNU),1)
         CFLAGS += -fdata-sections -ffunction-sections
         LD := $(GP)-ld -i
     else
-        LD := $(GP)-gcc -T$(SPINN_TOOLS_DIR)/sark.lnk -Wl,-e,cpu_reset -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--use-blx -nostartfiles -static
+        ifeq ($(IO_SDRAM), 0)
+            LINK_SCRIPT := sark.lnk
+        else
+            LINK_SCRIPT := sark_sdram_io.lnk
+        endif
+        LD := $(GP)-gcc -T$(SPINN_TOOLS_DIR)/$(LINK_SCRIPT) -Wl,-e,cpu_reset -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--use-blx -nostartfiles -static
         LFLAGS += -L $(SPINN_LIB_DIR)
     endif
     
@@ -127,6 +135,7 @@ endif
 $(APP_OUTPUT_DIR)%.aplx: $(BUILD_DIR)%.bin $(BUILD_DIR)%.nm
 	$(MKDIR) $(APP_OUTPUT_DIR)
 	$(SPINN_TOOLS_DIR)/mkaplx $(BUILD_DIR)$*.nm | $(CAT) - $(BUILD_DIR)$*.bin > $@
+	$(SPINN_TOOLS_DIR)/mkaplx -text $(BUILD_DIR)$*.nm > $(BUILD_DIR)$*.aplx.txt
 	$(LS) $@
 
 # Create a list of the objects in the file using nm
@@ -138,8 +147,9 @@ $(BUILD_DIR)%.bin: $(BUILD_DIR)%.elf
 ifeq ($(GNU),1)
 	$(OC) -O binary -j RO_DATA $< $(BUILD_DIR)RO_DATA.bin
 	$(OC) -O binary -j RW_DATA $< $(BUILD_DIR)RW_DATA.bin
-	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $@
-	$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin
+	$(OC) -O binary -j SDRAM_DATA $< $(BUILD_DIR)SDRAM_DATA.bin
+	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin > $@
+	$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin
 else
 	$(OC) --bin --output $@ $<
 endif

@@ -73,6 +73,11 @@ my $APLX_EXEC = 4;
 my ($RO_TO, $RO_FROM, $RO_LENGTH);
 my ($RW_TO, $RW_FROM, $RW_LENGTH);
 my ($ZI_TO, $ZI_LENGTH);
+my ($SDRAM_TO, $SDRAM_FROM, $SDRAM_LENGTH);
+
+$SDRAM_LENGTH = 0;
+$RW_LENGTH = 0;
+$ZI_LENGTH = 0;
 
 
 # Read ELF file symbols from nm format
@@ -101,6 +106,10 @@ while (<$fh>)
 
     $ZI_LENGTH = hex $addr if $name eq 'Image$$DTCM$$ZI$$Length' ||
 	                      $name eq 'ZI_LENGTH';
+	                      
+	$SDRAM_TO = hex $addr if $name eq 'SDRAM_BASE';
+	
+	$SDRAM_LENGTH = hex $addr if $name eq 'SDRAM_LENGTH';
 }
 
 close $fh;
@@ -108,11 +117,12 @@ close $fh;
 
 # Generate APLX data as ARM assembler (-text) or binary (default)
 
-my $image_size = $RO_LENGTH + $RW_LENGTH;	# Size of main image
-my $image_aplx = 64;				# Size of basic header
+my $image_size = $RO_LENGTH + $RW_LENGTH + $SDRAM_LENGTH;	# Size of main image
+my $image_aplx = 80;				# Size of basic header
 
 $RO_FROM = $image_aplx;
 $RW_FROM = $image_aplx + $RO_LENGTH - 16;
+$SDRAM_FROM = $image_aplx + $RO_LENGTH + $RW_LENGTH - 32;
 
 if ($text)
 {
@@ -169,6 +179,9 @@ if ($text)
 
     printf "\t\tdcd\tAPLX_RCOPY, 0x%08x, 0x%08x, 0x%08x\n",
 	$RW_TO, $RW_FROM, $RW_LENGTH if $RW_LENGTH != 0;
+	
+	printf "\t\tdcd\tAPLX_RCOPY, 0x%08x, 0x%08x, 0x%08x\n",
+	$SDRAM_TO, $SDRAM_FROM, $SDRAM_LENGTH if $SDRAM_LENGTH != 0;
 
     printf "\t\tdcd\tAPLX_FILL,  0x%08x, 0x%08x, 0x%08x\n",
 	$ZI_TO, $ZI_LENGTH, 0 if $ZI_LENGTH != 0;
@@ -177,6 +190,8 @@ if ($text)
         $RO_TO, 0, 0;
 
     print "\t\tdcd\t0, 0, 0, 0\n" if $RW_LENGTH == 0;
+    
+    print "\t\tdcd\t0, 0, 0, 0\n" if $SDRAM_LENGTH == 0;
 
     print "\t\tdcd\t0, 0, 0, 0\n" if $ZI_LENGTH == 0;
 
@@ -219,9 +234,13 @@ else
 
     print pack "V4", $APLX_RCOPY, $RO_TO, $RO_FROM, $RO_LENGTH;
     print pack "V4", $APLX_RCOPY, $RW_TO, $RW_FROM, $RW_LENGTH if $RW_LENGTH != 0;
+    print pack "V4", $APLX_RCOPY, $SDRAM_TO, $SDRAM_FROM, $SDRAM_LENGTH if $SDRAM_LENGTH != 0;
     print pack "V4", $APLX_FILL,  $ZI_TO, $ZI_LENGTH, 0 if $ZI_LENGTH != 0;
     print pack "V4", $APLX_EXEC,  $RO_TO, 0,          0;
 
     print pack "V4", 0, 0, 0, 0 if $RW_LENGTH == 0;
+    
+    print pack "V4", 0, 0, 0, 0 if $SDRAM_LENGTH == 0;
+    
     print pack "V4", 0, 0, 0, 0 if $ZI_LENGTH == 0;
 }
