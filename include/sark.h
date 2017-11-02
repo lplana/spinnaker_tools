@@ -14,6 +14,12 @@
 #ifndef __SARK_H__
 #define __SARK_H__
 
+#ifdef __cplusplus
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+extern "C"
+{
+#endif // __cplusplus
+
 #include <spinnaker.h>
 #include <version.h>
 
@@ -2538,4 +2544,7 @@ void timer_cancel (event_t *e, uint ID);
 
 //------------------------------------------------------------------------------
 
-#endif
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+#endif // __SARK_H__
