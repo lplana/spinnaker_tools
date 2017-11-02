@@ -11,7 +11,6 @@
 ##
 ##------------------------------------------------------------------------------
 
-
 # This program reads a C language .h file and converts it to an ARM
 # assember format file. Only a limited range of conversions is
 # performed - its main purpose is to convert "#define NAME VALUE" to
@@ -36,64 +35,55 @@
 # Unrecognised lines are omitted from the output and multiple blank
 # lines are compressed.
 
-
 use strict;
 use warnings;
 
-
-my $blank = 0;
-my $time = localtime (time ());
+my $blank  = 0;
+my $time   = localtime(time());
+my $inskip = 0;
 
 printf ";\n; Auto-generated from \"%s\" - $time\n;\n", $ARGV[0] || "<STDIN>";
 
+while (<>) {
+	chomp;
+	s/^\s+|\s+$//g;
+	s/\/\//;/;
 
-while (<>)
-{
-    chomp;
-    s/^\s+|\s+$//g;
-    s/\/\//;/;
+	if (/^$/) {
+		print "\n" unless $blank;
+		$blank = 1;
+		next;
+	}
 
-    if (/^$/)
-    {
-	print "\n" unless $blank;
-	$blank = 1;
-	next;
-    }
+	$blank = 0;
 
-    $blank = 0;
+	# Skip any chunks intended for C++ only...
+	if (/^#ifdef +__cplusplus$/) {
+		$inskip = 1;
+	} elsif ($inskip && m!^#endif */\* *__cplusplus *\*/;?$!) {
+		$inskip = 0;
+		next;
+	}
+	next if $inskip;
 
-    if (/^;/)
-    {
-	print "$_\n";
-    }
-    elsif (/^#define\s+(\w+)\s+(.+)/)
-    {
-	my ($name, $val) = ($1, $2);
-	my $rest = '';
-
-	($val, $rest) = ($2, $3) if $val =~ /^(INT|BYTE)_AT\((.+?)\)(.*)/;
-	printf "%-15s equ     $val$rest\n", $name;
-    }
-    elsif (/^#ifdef\s+(\w+)/)
-    {
-	printf "%-15s if      :def: $1\n", '';
-    }
-    elsif (/^#ifndef\s+(\w+)/)
-    {
-	printf "%-15s if      :lnot: :def: $1\n", '';
-    }
-    elsif (/^#else$/)
-    {
-	printf "%-15s else\n", '';
-    }
-    elsif (/^#endif$/)
-    {
-	printf "%-15s endif\n", '';
-    }
-    else
-    {
-	$blank = 1;
-    }
+	if (/^;/) {
+		print "$_\n";
+	} elsif (/^#define\s+(\w+)\s+(.+)/) {
+		my ( $name, $val ) = ( $1, $2 );
+		my $rest = '';
+		( $val, $rest ) = ( $2, $3 ) if $val =~ /^(INT|BYTE)_AT\((.+?)\)(.*)/;
+		printf "%-15s equ     $val$rest\n", $name;
+	} elsif (/^#ifdef\s+(\w+)/) {
+		printf "%-15s if      :def: $1\n", '';
+	} elsif (/^#ifndef\s+(\w+)/) {
+		printf "%-15s if      :lnot: :def: $1\n", '';
+	} elsif (/^#else/) {
+		printf "%-15s else\n", '';
+	} elsif (/^#endif/) {
+		printf "%-15s endif\n", '';
+	} else {
+		$blank = 1;
+	}
 }
 
 printf "\n%-15s end\n", '';
