@@ -1,4 +1,3 @@
-
 //------------------------------------------------------------------------------
 //
 // bmp_init.c	    System initialisation code for BMP LPC1768
@@ -48,13 +47,14 @@ const int pad __attribute__ ((section (".padding"))) = 0xdeaddead;
 
 // Cortex M3 vector tables for BMP LPC1768
 
-extern void die (uint32_t code);
-extern void c_main (void);
+extern void die(uint32_t code);
+extern void c_main(void);
 
-void  __attribute__((noreturn)) error_han (void)
+void  __attribute__((noreturn)) error_han(void)
 {
-  while (1)
-    die (12);
+    while (1) {
+	die(12);
+    }
 }
 
 // Cortex M3 core interrupt handlers
@@ -108,8 +108,7 @@ void USBActivity_IRQHandler (void) __attribute__ ((weak, alias ("error_han")));
 void CANActivity_IRQHandler (void) __attribute__ ((weak, alias ("error_han")));
 
 
-const cortex_vec_t main_vec __attribute__ ((section (".vectors"))) =
-  {
+const cortex_vec_t main_vec __attribute__ ((section (".vectors"))) = {
     (uint32_t *) &STACK_LIMIT,	   // 0:  Stack top
     (main_proc) c_main,            // 1:  Entry point
 
@@ -166,13 +165,13 @@ const cortex_vec_t main_vec __attribute__ ((section (".vectors"))) =
     USBActivity_IRQHandler,    	   // 49: USB Activity
     CANActivity_IRQHandler,        // 50: CAN Activity
 
-    (handler) 0,		   // 51: 
-    (handler) 0,		   // 52: 
+    (handler) 0,		   // 51:
+    (handler) 0,		   // 52:
     BUILD_DATE,			   // 53: Build date
     BMP_VER_NUM,		   // 54: Version number
 
-    (uint32_t) &RO_LENGTH,         // 55: RO_length
-    (uint32_t) &RW_LENGTH,         // 56: RW_length
+    (uint32_t) &RO_LENGTH,         // 55: RO_length - NB: causes compiler warn
+    (uint32_t) &RW_LENGTH,         // 56: RW_length - NB: causes compiler warn
     &RO_LIMIT,   		   // 57: RO_limit
     &RW_BASE,	 		   // 58: RW_base
     &RW_LIMIT,	 		   // 59: RW_limit
@@ -180,7 +179,7 @@ const cortex_vec_t main_vec __attribute__ ((section (".vectors"))) =
     &ZI_LIMIT,	 		   // 61: ZI_limit
     &STACK_BASE, 		   // 62: stack_base
     &STACK_LIMIT 		   // 63: stack_limit
-  };
+};
 
 
 //------------------------------------------------------------------------------

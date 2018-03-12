@@ -4,8 +4,8 @@
 //
 // Copyright (C)    The University of Manchester - 2009-2013
 //
-// Author           Steve Temple, APT Group, School of Computer Science
-// Email            temples@cs.man.ac.uk
+// Author	    Steve Temple, APT Group, School of Computer Science
+// Email	    temples@cs.man.ac.uk
 //
 //------------------------------------------------------------------------------
 
@@ -30,74 +30,79 @@
 // block is allocated.
 
 
-void *sark_xalloc (heap_t *heap, uint size, uint tag, uint flag)
+void *sark_xalloc(heap_t *heap, uint size, uint tag, uint flag)
 {
-  if (size == 0 || tag > 255)
-    return NULL;
-
-  uint app_id = (flag & ALLOC_ID) ? (flag >> 8) : sark_vec->app_id;
-  uint entry = (app_id << 8) + tag;
-
-  if (tag != 0 && sv->alloc_tag[entry] != NULL)
-    return NULL;
-
-  // Word align and add overhead
-
-  size = ((size + 3) & ~3) + sizeof (block_t);
-
-  uint cpsr;
-
-  if (flag & ALLOC_LOCK)
-    cpsr = sark_lock_get (LOCK_HEAP);
-
-  block_t *prev = NULL;
-  block_t *free = heap->free;
-
-  while (free != NULL)
-    {
-      block_t *next = free->next;
-      block_t *new = (block_t *) ((uchar *) free + size);
-
-      if (new <= free) // Request way too big?
-	break;
-
-      if (new > next) // Free block too small
-	{
-	  prev = free;
-	  free = free->free;
-	  continue;
-	}
-
-      if (new + 1 < next) // too big - split but don't make zero-size frag.
-	{
-	  new->next = next;
-	  free->next = new;
-	  new->free = free->free;
-	  free->free = new;
-	}
-
-      if (prev)
-	prev->free = free->free;
-      else
-	heap->free = free->free;
-
-      heap->free_bytes -= size;
-
-      if (flag & ALLOC_LOCK)
-	sark_lock_free (cpsr, LOCK_HEAP);
-
-      free->free = (block_t *) (0xffff0000 + entry);
-
-      if (tag != 0)
-	sv->alloc_tag[entry] = free + 1;
-
-      return free + 1;
+    if (size == 0 || tag > 255) {
+	return NULL;
     }
 
-  if (flag & ALLOC_LOCK)
-    sark_lock_free (cpsr, LOCK_HEAP);
+    uint app_id = (flag & ALLOC_ID) ? (flag >> 8) : sark_vec->app_id;
+    uint entry = (app_id << 8) + tag;
 
-  return NULL;
+    if (tag != 0 && sv->alloc_tag[entry] != NULL) {
+	return NULL;
+    }
+
+    // Word align and add overhead
+
+    size = ((size + 3) & ~3) + sizeof(block_t);
+
+    uint cpsr;
+
+    if (flag & ALLOC_LOCK) {
+	cpsr = sark_lock_get(LOCK_HEAP);
+    }
+
+    block_t *prev_blk = NULL;
+    block_t *free_blk = heap->free;
+
+    while (free_blk != NULL) {
+	block_t *next_blk = free_blk->next;
+	block_t *new_blk = (block_t *) ((uchar *) free_blk + size);
+
+	if (new_blk <= free_blk) {	// Request way too big?
+	    break;
+	}
+
+	if (new_blk > next_blk) {	// Free block too small
+	    prev_blk = free_blk;
+	    free_blk = free_blk->free;
+	    continue;
+	}
+
+	if (new_blk + 1 < next_blk) {	// too big - split but don't make zero-size frag.
+	    new_blk->next = next_blk;
+	    free_blk->next = new_blk;
+	    new_blk->free = free_blk->free;
+	    free_blk->free = new_blk;
+	}
+
+	if (prev_blk) {
+	    prev_blk->free = free_blk->free;
+	} else {
+	    heap->free = free_blk->free;
+	}
+
+	heap->free_bytes -= size;
+
+	if (flag & ALLOC_LOCK) {
+	    sark_lock_free(cpsr, LOCK_HEAP);
+	}
+
+	free_blk->free = (block_t *) (0xffff0000 + entry);
+
+	if (tag != 0) {
+	    sv->alloc_tag[entry] = free_blk + 1;
+	}
+
+	return free_blk + 1;
+    }
+
+    if (flag & ALLOC_LOCK) {
+	sark_lock_free(cpsr, LOCK_HEAP);
+    }
+
+    return NULL;
 }
 
 
@@ -106,9 +111,9 @@ void *sark_xalloc (heap_t *heap, uint size, uint tag, uint flag)
 // Allocate a memory block from the SARK heap (in DTCM). Returns NULL on
 // failure
 
-void *sark_alloc (uint count, uint size)
+void *sark_alloc(uint count, uint size)
 {
-  return sark_xalloc (sark.heap, count * size, 0, 0);
+    return sark_xalloc(sark.heap, count * size, 0, 0);
 }
 
 
@@ -118,62 +123,65 @@ void *sark_alloc (uint count, uint size)
 // provided, the manipulation of the heap is done behind a lock. This
 // will turn interrupts off for some time while the heap is searched.
 
-void sark_xfree (heap_t *heap, void *ptr, uint flag)
+void sark_xfree(heap_t *heap, void *ptr, uint flag)
 {
-  if (ptr == NULL)
-    rt_error (RTE_NULL);
-
-  uint cpsr;
-
-  if (flag & ALLOC_LOCK)
-    cpsr = sark_lock_get (LOCK_HEAP);
-
-  block_t *block = (block_t *) ptr - 1;
-  block_t *prev = NULL;
-  block_t *next = heap->free;
-
-  uint entry = (uint) block->free & 0xffff;
-
-  if ((entry & 255) != 0)
-    sv->alloc_tag[entry] = NULL;
-
-  heap->free_bytes += (uchar *) block->next - (uchar *) block;
-
-  // Scan free list to find free block higher than us
-
-  while (next != NULL)
-    {
-      if (block < next)
-	break;
-      prev = next;
-      next = next->free;
+    if (ptr == NULL) {
+	rt_error(RTE_NULL);
     }
 
-  // Link into free list
+    uint cpsr;
 
-  block->free = next;
-
-  if (prev)
-    prev->free = block;
-  else
-    heap->free = block;
-
-  // Merge with previous and/or next blocks if possible
-
-  if (next != NULL && block->next == next)
-    {
-      block->next = next->next;
-      block->free = next->free;
+    if (flag & ALLOC_LOCK) {
+	cpsr = sark_lock_get(LOCK_HEAP);
     }
 
-  if (prev != NULL && prev->next == block)
-    {
-      prev->next = block->next;
-      prev->free = block->free;
+    block_t *block = (block_t *) ptr - 1;
+    block_t *prev = NULL;
+    block_t *next = heap->free;
+
+    uint entry = (uint) block->free & 0xffff;
+
+    if ((entry & 255) != 0) {
+	sv->alloc_tag[entry] = NULL;
     }
 
-  if (flag & ALLOC_LOCK)
-    sark_lock_free (cpsr, LOCK_HEAP);
+    heap->free_bytes += (uchar *) block->next - (uchar *) block;
+
+    // Scan free list to find free block higher than us
+
+    while (next != NULL) {
+	if (block < next) {
+	    break;
+	}
+	prev = next;
+	next = next->free;
+    }
+
+    // Link into free list
+
+    block->free = next;
+
+    if (prev) {
+	prev->free = block;
+    } else {
+	heap->free = block;
+    }
+
+    // Merge with previous and/or next blocks if possible
+
+    if (next != NULL && block->next == next) {
+	block->next = next->next;
+	block->free = next->free;
+    }
+
+    if (prev != NULL && prev->next == block) {
+	prev->next = block->next;
+	prev->free = block->free;
+    }
+
+    if (flag & ALLOC_LOCK) {
+	sark_lock_free(cpsr, LOCK_HEAP);
+    }
 }
 
 
@@ -181,9 +189,9 @@ void sark_xfree (heap_t *heap, void *ptr, uint flag)
 
 // Free a memory block in the SARK heap (in DTCM)
 
-void sark_free (void *ptr)
+void sark_free(void *ptr)
 {
-  sark_xfree (sark.heap, ptr, 0);
+    sark_xfree(sark.heap, ptr, 0);
 }
 
 
@@ -193,27 +201,25 @@ void sark_free (void *ptr)
 // given "app_id". A lock parameter specifies if locking needed in the
 // "sark_xfree" call. Returns number of blocks freed.
 
-uint sark_xfree_id (heap_t *heap, uint app_id, uint lock)
+uint sark_xfree_id(heap_t *heap, uint app_id, uint lock)
 {
-  block_t *block = heap->first;
-  uint count = 0;
+    block_t *block = heap->first;
+    uint count = 0;
 
-  //## Do we need to lock all of this?
+    //## Do we need to lock all of this?
 
-  while (block->next != NULL)
-    {
-      uint block_id = ((uint) block->free >> 8) & 255;
+    while (block->next != NULL) {
+	uint block_id = ((uint) block->free >> 8) & 255;
 
-      if (app_id == block_id)
-	{
-	  sark_xfree (heap, block + 1, lock);
-	  count++;
+	if (app_id == block_id) {
+	    sark_xfree(heap, block + 1, lock);
+	    count++;
 	}
 
-      block = block->next;
+	block = block->next;
     }
 
-  return count;
+    return count;
 }
 
 
@@ -221,32 +227,33 @@ uint sark_xfree_id (heap_t *heap, uint app_id, uint lock)
 
 // Return the size of the largest free block in the supplied heap
 
-uint sark_heap_max (heap_t *heap, uint flag)
+uint sark_heap_max(heap_t *heap, uint flag)
 {
-  block_t *p = heap->free;
-  uint max = 0;
-  uint cpsr;
+    block_t *p = heap->free;
+    uint max = 0;
+    uint cpsr;
 
-  if (flag & ALLOC_LOCK)
-    cpsr = sark_lock_get (LOCK_HEAP);
-
-  while (p != NULL)
-    {
-      if (p->next != NULL)
-	{
-	  uint free = (uchar *) p->next - (uchar *) p - sizeof (block_t);
-
-	  if (free > max)
-	    max = free;
-	}
-
-      p = p->free;
+    if (flag & ALLOC_LOCK) {
+	cpsr = sark_lock_get(LOCK_HEAP);
     }
 
-  if (flag & ALLOC_LOCK)
-    sark_lock_free (cpsr, LOCK_HEAP);
+    while (p != NULL) {
+	if (p->next != NULL) {
+	    uint free = (uchar *) p->next - (uchar *) p - sizeof(block_t);
 
-  return max;
+	    if (free > max) {
+		max = free;
+	    }
+	}
+
+	p = p->free;
+    }
+
+    if (flag & ALLOC_LOCK) {
+	sark_lock_free(cpsr, LOCK_HEAP);
+    }
+
+    return max;
 }
 
 
@@ -257,23 +264,23 @@ uint sark_heap_max (heap_t *heap, uint flag)
 // (same address as the base). Assumes the area is large enough to
 // hold a minimal heap (needs minimum 32 bytes for zero size heap!).
 
-heap_t *sark_heap_init (uint *base, uint *top)
+heap_t *sark_heap_init(uint *base, uint *top)
 {
-  heap_t *heap = (heap_t *) base;
+    heap_t *heap = (heap_t *) base;
 
-  block_t *first = (block_t *) heap->buffer;
-  block_t *last = (block_t *) ((uchar *) top - sizeof (block_t));
+    block_t *first = (block_t *) heap->buffer;
+    block_t *last = (block_t *) ((uchar *) top - sizeof(block_t));
 
-  heap->free = heap->first = first;
-  heap->last = first->next = last;
-  heap->free_bytes = (uchar *) last - (uchar *) first - sizeof (block_t);
+    heap->free = heap->first = first;
+    heap->last = first->next = last;
+    heap->free_bytes = (uchar *) last - (uchar *) first - sizeof(block_t);
 
-  last->next = NULL;
-  first->free = NULL;
+    last->next = NULL;
+    first->free = NULL;
 
-  last->free = NULL;	// Not really necessary
+    last->free = NULL;	// Not really necessary
 
-  return heap;
+    return heap;
 }
 
 
@@ -294,57 +301,55 @@ heap_t *sark_heap_init (uint *base, uint *top)
 // first entry on success, zero on failure. The block is associated with
 // the supplied AppID
 
-uint rtr_alloc_id (uint size, uint app_id)
+uint rtr_alloc_id(uint size, uint app_id)
 {
-  if (size == 0)
-    return 0;
-
-  rtr_entry_t *router = sv->rtr_copy;
-
-  uint cpsr = sark_lock_get (LOCK_RTR);
-
-  uint prev = 0;
-  uint free = sv->rtr_free;
-
-  while (free != 0)
-    {
-      uint next = router[free].next;
-      uint new = free + size;
-
-      if (new > next) 	// Too small, keep looking
-	{
-	  prev = free;
-	  free = router[free].free;
-	  continue;
-	}
-
-      if (new < next)	// Too big, split
-	{
-	  router[new].next = next;
-	  router[free].next = new;
-	  router[new].free = router[free].free;
-	  router[free].free = new;
-	}
-
-      if (prev != 0)
-	router[prev].free = router[free].free;
-      else
-	sv->rtr_free = router[free].free;
-
-      router[free].free = app_id | 0x8000;
-
-      break;
+    if (size == 0) {
+	return 0;
     }
 
-  sark_lock_free (cpsr, LOCK_RTR);
+    rtr_entry_t *router = sv->rtr_copy;
 
-  return free;
+    uint cpsr = sark_lock_get(LOCK_RTR);
+
+    uint prev = 0;
+    uint free = sv->rtr_free;
+
+    while (free != 0) {
+	uint next = router[free].next;
+	uint new_alloc = free + size;
+
+	if (new_alloc > next) {		// Too small, keep looking
+	    prev = free;
+	    free = router[free].free;
+	    continue;
+	}
+
+	if (new_alloc < next) {		// Too big, split
+	    router[new_alloc].next = next;
+	    router[free].next = new_alloc;
+	    router[new_alloc].free = router[free].free;
+	    router[free].free = new_alloc;
+	}
+
+	if (prev != 0) {
+	    router[prev].free = router[free].free;
+	} else {
+	    sv->rtr_free = router[free].free;
+	}
+
+	router[free].free = app_id | 0x8000;
+	break;
+    }
+
+    sark_lock_free(cpsr, LOCK_RTR);
+
+    return free;
 }
 
 
-uint rtr_alloc (uint size)
+uint rtr_alloc(uint size)
 {
-  return rtr_alloc_id (size, sark_vec->app_id);
+    return rtr_alloc_id(size, sark_vec->app_id);
 }
 
 
@@ -354,52 +359,51 @@ uint rtr_alloc (uint size)
 // entry. Argument clear causes the relevant router registers to be
 // re-initialised.
 
-void rtr_free (uint entry, uint clear)
+void rtr_free(uint entry, uint clear)
 {
-  if (entry < RTR_ALLOC_FIRST || entry >= RTR_ALLOC_LAST)
-    return;
-
-  rtr_entry_t *router = sv->rtr_copy;
-
-  uint cpsr = sark_lock_get (LOCK_RTR);
-
-  uint prev = 0;
-  uint next = sv->rtr_free;
-
-  if (clear)
-    {
-      uint size = router[entry].next - entry;
-      rtr_mc_clear (entry, size);
+    if (entry < RTR_ALLOC_FIRST || entry >= RTR_ALLOC_LAST) {
+	return;
     }
 
-  while (next != 0)
-    {
-      if (entry < next)
-	break;
-      prev = next;
-      next = router[next].free;
+    rtr_entry_t *router = sv->rtr_copy;
+
+    uint cpsr = sark_lock_get(LOCK_RTR);
+
+    uint prev = 0;
+    uint next = sv->rtr_free;
+
+    if (clear) {
+	uint size = router[entry].next - entry;
+	rtr_mc_clear(entry, size);
     }
 
-  router[entry].free = next;
-
-  if (prev != 0)
-    router[prev].free = entry;
-  else
-    sv->rtr_free = entry;
-
-  if (next != 0 && router[entry].next == next)
-    {
-      router[entry].next = router[next].next;
-      router[entry].free = router[next].free;
+    while (next != 0) {
+	if (entry < next) {
+	    break;
+	}
+	prev = next;
+	next = router[next].free;
     }
 
-  if (prev != 0 && router[prev].next == entry)
-    {
-      router[prev].next = router[entry].next;
-      router[prev].free = router[entry].free;
+    router[entry].free = next;
+
+    if (prev != 0) {
+	router[prev].free = entry;
+    } else {
+	sv->rtr_free = entry;
     }
 
-  sark_lock_free (cpsr, LOCK_RTR);
+    if (next != 0 && router[entry].next == next) {
+	router[entry].next = router[next].next;
+	router[entry].free = router[next].free;
+    }
+
+    if (prev != 0 && router[prev].next == entry) {
+	router[prev].next = router[entry].next;
+	router[prev].free = router[entry].free;
+    }
+
+    sark_lock_free(cpsr, LOCK_RTR);
 }
 
 //------------------------------------------------------------------------------
@@ -410,59 +414,56 @@ void rtr_free (uint entry, uint clear)
 
 #define FREE_MASK 0xe0ff
 
-uint rtr_free_id (uint app_id, uint clear)
+uint rtr_free_id(uint app_id, uint clear)
 {
-  rtr_entry_t *router = sv->rtr_copy;
-  uint block = RTR_ALLOC_FIRST;
-  uint count = 0;
+    rtr_entry_t *router = sv->rtr_copy;
+    uint block = RTR_ALLOC_FIRST;
+    uint count = 0;
 
-  app_id |= 0x8000;	// Stored as "ushort"
+    app_id |= 0x8000;	// Stored as "ushort"
 
-  //## Do we need to lock all of this?
+    //## Do we need to lock all of this?
 
-  while (router[block].next != 0)
-    {
-      if ((router[block].free & FREE_MASK) == app_id)
-	{
-	  rtr_free (block, clear);
-	  count++;
+    while (router[block].next != 0) {
+	if ((router[block].free & FREE_MASK) == app_id) {
+	    rtr_free(block, clear);
+	    count++;
 	}
 
-      block = router[block].next;
+	block = router[block].next;
     }
 
-  return count;
+    return count;
 }
 
 //------------------------------------------------------------------------------
 
 // Return the size of the largest free block in the router heap
 
-uint rtr_alloc_max (void)
+uint rtr_alloc_max(void)
 {
-  rtr_entry_t *router = sv->rtr_copy;
-  uint block = sv->rtr_free;
+    rtr_entry_t *router = sv->rtr_copy;
+    uint block = sv->rtr_free;
 
-  uint max = 0;
+    uint max = 0;
 
-  uint cpsr = sark_lock_get (LOCK_HEAP);
+    uint cpsr = sark_lock_get(LOCK_HEAP);
 
-  while (block != 0)
-    {
-      if (router[block].next != 0)
-	{
-	  uint free = router[block].next - block;
+    while (block != 0) {
+	if (router[block].next != 0) {
+	    uint free = router[block].next - block;
 
-	  if (free > max)
-	    max = free;
+	    if (free > max) {
+		max = free;
+	    }
 	}
 
-      block = router[block].free;
+	block = router[block].free;
     }
 
-  sark_lock_free (cpsr, LOCK_HEAP);
+    sark_lock_free(cpsr, LOCK_HEAP);
 
-  return max;
+    return max;
 }
 
 //------------------------------------------------------------------------------
@@ -470,12 +471,12 @@ uint rtr_alloc_max (void)
 // Get a pointer to a tagged allocation. If the "app_id" parameter is zero
 // uses the core's app_id.
 
-void *sark_tag_ptr (uint tag, uint app_id)
+void *sark_tag_ptr(uint tag, uint app_id)
 {
-  if (app_id == 0)
-    app_id = sark_vec->app_id;
-  
-  return (void *) sv->alloc_tag[(app_id << 8) + tag];
+    if (app_id == 0) {
+	app_id = sark_vec->app_id;
+    }
+    return (void *) sv->alloc_tag[(app_id << 8) + tag];
 }
 
 //------------------------------------------------------------------------------
