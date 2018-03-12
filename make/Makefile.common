@@ -15,6 +15,9 @@ DEBUG := 1
 # Set to 1 if making a library (advanced!)
 LIB := 0
 
+# Set to 1 if RO routines (other than startup) should be in SDRAM to save ITCM (advanced - GNU only)
+RO_SDRAM := 0
+
 # Prefix for GNU tool binaries
 GP := arm-none-eabi
 
@@ -64,7 +67,12 @@ ifeq ($(GNU),1)
         CFLAGS += -fdata-sections -ffunction-sections
         LD := $(GP)-ld -i
     else
-        LD := $(GP)-gcc -T$(SPINN_TOOLS_DIR)/sark_sdram.lnk -Wl,-e,cpu_reset -Wl,-static -ffreestanding -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--use-blx -nostartfiles -static
+        ifeq ($(RO_SDRAM), 0)
+            LINK_SCRIPT := sark.lnk
+        else
+            LINK_SCRIPT := sark_sdram.lnk
+        endif
+        LD := $(GP)-gcc -T$(SPINN_TOOLS_DIR)/$(LINK_SCRIPT) -Wl,-e,cpu_reset -Wl,-static -ffreestanding -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--use-blx -nostartfiles -static
         LFLAGS += -L $(SPINN_LIB_DIR)
     endif
     
@@ -129,6 +137,7 @@ endif
 $(APP_OUTPUT_DIR)%.aplx: $(BUILD_DIR)%.bin $(BUILD_DIR)%.nm
 	$(MKDIR) $(APP_OUTPUT_DIR)
 	$(SPINN_TOOLS_DIR)/mkaplx $(BUILD_DIR)$*.nm | $(CAT) - $(BUILD_DIR)$*.bin > $@
+	$(SPINN_TOOLS_DIR)/mkaplx -text $(BUILD_DIR)$*.nm > $(BUILD_DIR)$*.aplx.txt
 	$(LS) $@
 
 # Create a list of the objects in the file using nm
@@ -140,8 +149,9 @@ $(BUILD_DIR)%.bin: $(BUILD_DIR)%.elf
 ifeq ($(GNU),1)
 	$(OC) -O binary -j RO_DATA -j EX_DATA $< $(BUILD_DIR)RO_DATA.bin
 	$(OC) -O binary -j RW_DATA $< $(BUILD_DIR)RW_DATA.bin
-	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $@
-	$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin
+	$(OC) -O binary -j SDRAM_DATA $< $(BUILD_DIR)SDRAM_DATA.bin
+	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin > $@
+	# $(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin
 else
 	$(OC) --bin --output $@ $<
 endif
