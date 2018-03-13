@@ -12,6 +12,9 @@ include ../make/Makefile.common
 
 APIOBJS := spin1_api.o spin1_isr.o
 APIOBJ := $(APIOBJS:%.o=$(BUILD_DIR)/%.o)
+SARKOBJS := sark_alib.o sark_base.o sark_event.o sark_timer.o \
+	sark_hw.o sark_isr.o sark_alloc.o sark_io.o sark_pkt.o sark_div0.o
+SARKOBJ := $(SARKOBJS:%.o=$(BUILD_DIR)/%.o)
 HEADERS := spinnaker.h sark.h spin1_api.h spin1_api_params.h
 HEADER := $(HEADERS:%.h=$(SPINN_INC_DIR)/%.h)
 
@@ -30,7 +33,7 @@ CFLAGS += $(APIOPT)
 
 # APILIB (default target)
 
-$(APILIB): $(BUILD_DIR)/sark.o $(APIOBJ)
+$(APILIB): $(SARKOBJ) $(APIOBJ)
 	$(RM) $@
 	$(AR) $@ $^
 
