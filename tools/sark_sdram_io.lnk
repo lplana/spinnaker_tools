@@ -49,10 +49,10 @@ SECTIONS
     {
           * (_alib_reset);
           * (alib_*);
+          * (EXCLUDE_FILE(*sark_io.o) .text*);
           __init_array_start = .;
           KEEP (*(.init_array*))
           __init_array_end = .;
-          * (EXCLUDE_FILE(*sark_io.o) .text*);
           * (.fini*);
           * (.init*);
     } > ITCM

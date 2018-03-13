@@ -151,6 +151,7 @@ ifeq ($(GNU),1)
 	$(OC) -O binary -j RW_DATA $< $(BUILD_DIR)RW_DATA.bin
 	$(OC) -O binary -j SDRAM_DATA $< $(BUILD_DIR)SDRAM_DATA.bin
 	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin > $@
+	$(LS) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin
 	$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin $(BUILD_DIR)SDRAM_DATA.bin
 else
 	$(OC) --bin --output $@ $<
