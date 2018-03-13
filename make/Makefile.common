@@ -67,11 +67,13 @@ ifeq ($(GNU),1)
         CFLAGS += -fdata-sections -ffunction-sections
         LD := $(GP)-ld -i
     else
-        ifeq ($(RO_SDRAM), 0)
-            LINK_SCRIPT := sark.lnk
-        else
-            LINK_SCRIPT := sark_sdram.lnk
-        endif
+        ifndef LINK_SCRIPT
+	        ifeq ($(RO_SDRAM), 0)
+	            LINK_SCRIPT := sark.lnk
+	        else
+	            LINK_SCRIPT := sark_sdram.lnk
+	        endif
+	    endif
         LD := $(GP)-gcc -T$(SPINN_TOOLS_DIR)/$(LINK_SCRIPT) -Wl,-e,cpu_reset -Wl,-static -ffreestanding -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--use-blx -nostartfiles -static
         LFLAGS += -L $(SPINN_LIB_DIR)
     endif
