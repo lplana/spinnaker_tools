@@ -15,7 +15,7 @@ MEMORY
 {
     ITCM : ORIGIN = 0, LENGTH = 0x7f00
     DTCM : ORIGIN = 0x400000, LENGTH = 0xf800
-    SDRAM : ORIGIN = 0x60000000, LENGTH = 0x8000
+    SDRAM : ORIGIN = 0x60000000, LENGTH = 0x07500000
 }
 
 
@@ -23,7 +23,7 @@ SECTIONS
 {
     ITCM_BASE = 0x00000000;
     DTCM_BASE = 0x00400000;
-    SDRAM_BASE = 0x60000000;
+    SDRAM_BASE = DEFINED( SDRAM_BASE ) ? SDRAM_BASE : 0x60000000;
 
     STACK_TOP = 0x00410000;
     STACK_SIZE = 0x800;
@@ -32,35 +32,46 @@ SECTIONS
     APLX_ENTRY = 16;
 
     . = SDRAM_BASE;
-    
+
     SDRAM_DATA :
     {
-          *sark_io.o(.text*);
+        *sark_io.o(.text*);
+        * (.rodata*);
     } > SDRAM
-    
+
     . = ALIGN (4);
-    
+
     SDRAM_LENGTH = . - SDRAM_BASE;
-    
+
     . = ITCM_BASE;
 
     RO_DATA :
     {
           * (_alib_reset);
           * (alib_*);
-          * (EXCLUDE_FILE(*sark_io.o) .text*);
           __init_array_start = .;
           KEEP (*(.init_array*))
           __init_array_end = .;
-          * (.rodata*);
+          * (EXCLUDE_FILE(*sark_io.o) .text*);
           * (.fini*);
           * (.init*);
     } > ITCM
 
     . = ALIGN (4);
 
-    RO_LENGTH = . - ITCM_BASE;
+    /*
+      Attempt to deal with .ARM.exdix* sections. Ideally we probably
+      want to throw these away but for now they go into the RO binary
+      See also "objcopy" lines in make file...
+    */     
 
+    EX_DATA :
+    {
+        * (.ARM.exidx*);
+    } > ITCM
+
+    RO_LENGTH = . - ITCM_BASE;
+    
     . = DTCM_BASE;
 
     RW_DATA  :
@@ -74,8 +85,8 @@ SECTIONS
 
     ZI_DATA  :
     {
-	* (.bss*);
-	* (COMMON);
+        * (.bss*);
+        * (COMMON);
     } > DTCM
 
     . = ALIGN (4);

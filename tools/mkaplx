@@ -122,7 +122,11 @@ my $image_aplx = 80;				# Size of basic header
 
 $RO_FROM = $image_aplx;
 $RW_FROM = $image_aplx + $RO_LENGTH - 16;
-$SDRAM_FROM = $image_aplx + $RO_LENGTH + $RW_LENGTH - 32;
+$SDRAM_FROM = $image_aplx + $RO_LENGTH + $RW_LENGTH - 16;
+if ($RW_LENGTH > 0)
+{
+    $SDRAM_FROM -= 16
+}
 
 if ($text)
 {
