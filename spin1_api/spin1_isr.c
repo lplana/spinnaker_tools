@@ -2,7 +2,7 @@
 
 #include <spin1_api.h>
 #include <spin1_api_params.h>
-
+#include <debug.h>
 
 extern void schedule(uchar event_id, uint arg0, uint arg1);
 
@@ -451,6 +451,7 @@ INT_HANDLER timer1_isr()
 
 	    // if in timer tic callback already, add to tracker for total failures
 	    diagnostics.total_times_tick_tic_callback_overran += 1;
+	    log_info("OR, ts: %u", ticks);
 
 	    // if number of timer callbacks in queue is greater than previously seen
 	    if (diagnostics.number_timer_tic_in_queue >

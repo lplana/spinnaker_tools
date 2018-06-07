@@ -63,7 +63,9 @@ LM_LICENSE_FILE=PORT@SERVER.cs.man.ac.uk:$LM_LICENSE_FILE
 
 # *** EDIT HERE ***
 
-GNUTOOLS=/local/temples/gcc-arm-none-eabi-4_9-2015q3
+# GNUTOOLS=/local/temples/gcc-arm-none-eabi-4_9-2015q3
+GNUTOOLS=/opt/local/arm-none-eabi
+# local/temples/gcc-arm-none-eabi-4_9-2015q3
 
 GNUBIN=$GNUTOOLS/bin
 
