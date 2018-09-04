@@ -1,0 +1,69 @@
+boot
+boot
+
+app_load sdram_dma_profiling.aplx . 1 66
+sleep 5	
+iobuf 1 1_1_cont.txt
+app_stop 66
+
+app_load sdram_dma_profiling.aplx . 1-2 66
+sleep 5	
+iobuf 1 1_2_cont.txt
+iobuf 2 2_2_cont.txt
+app_stop 66
+
+app_load sdram_dma_profiling.aplx . 1-4 66
+sleep 5	
+iobuf 1 1_4_cont.txt
+iobuf 2 2_4_cont.txt
+iobuf 3 3_4_cont.txt
+iobuf 4 4_4_cont.txt
+app_stop 66
+
+app_load sdram_dma_profiling.aplx . 1-8 66
+sleep 5	
+iobuf 1 1_8_cont.txt
+iobuf 2 2_8_cont.txt
+iobuf 3 3_8_cont.txt
+iobuf 4 4_8_cont.txt
+iobuf 5 5_8_cont.txt
+iobuf 6 6_8_cont.txt
+iobuf 7 7_8_cont.txt
+iobuf 8 8_8_cont.txt
+app_stop 66
+
+app_load sdram_dma_profiling.aplx . 1-12 66
+sleep 5	
+iobuf 1 1_12_cont.txt
+iobuf 2 2_12_cont.txt
+iobuf 3 3_12_cont.txt
+iobuf 4 4_12_cont.txt
+iobuf 5 5_12_cont.txt
+iobuf 6 6_12_cont.txt
+iobuf 7 7_12_cont.txt
+iobuf 8 8_12_cont.txt
+iobuf 9 9_12_cont.txt
+iobuf 10 10_12_cont.txt
+iobuf 11 11_12_cont.txt
+iobuf 12 12_12_cont.txt
+app_stop 66
+
+app_load sdram_dma_profiling.aplx . 1-16 66
+sleep 5	
+iobuf 1 1_16_cont.txt
+iobuf 2 2_16_cont.txt
+iobuf 3 3_16_cont.txt
+iobuf 4 4_16_cont.txt
+iobuf 5 5_16_cont.txt
+iobuf 6 6_16_cont.txt
+iobuf 7 7_16_cont.txt
+iobuf 8 8_16_cont.txt
+iobuf 9 9_16_cont.txt
+iobuf 10 10_16_cont.txt
+iobuf 11 11_16_cont.txt
+iobuf 12 12_16_cont.txt
+iobuf 13 13_16_cont.txt
+iobuf 14 14_16_cont.txt
+iobuf 15 15_16_cont.txt
+iobuf 16 16_16_cont.txt
+app_stop 66

@@ -8,7 +8,7 @@
 
 // DMA test constants
 // number of different sizes to test
-#define DMA_SIZES 11
+#define DMA_SIZES  9
 // number of tests for each size
 #define DMA_TSTS_LOG  7
 
@@ -20,8 +20,7 @@ uint * sdram_buffer;
 uint dma_tsts = (1 << DMA_TSTS_LOG);
 
 // data sizes for DMA accesses
-//uint dma_size[DMA_SIZES] = {1, 2, 4, 8, 16, 32, 64, 128, 255};
-uint dma_size[DMA_SIZES] =  {12, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250};
+uint dma_size[DMA_SIZES] = {1, 2, 4, 8, 16, 32, 64, 128, 255};
 
 // profiling variables
 uint dma_elapsed_avg[DMA_SIZES];
@@ -69,7 +68,7 @@ void dma_start (uint null0, uint null1)
     dma_elapsed_avg[current_size] = 0;
     dma_elapsed_min[current_size] = 0xffffffff;
     dma_elapsed_max[current_size] = 0;
-    uint tsz = (dma_size[current_size] + 0) * sizeof (uint);
+    uint tsz = (dma_size[current_size] + 3) * sizeof (uint);
 
     // do the required number of tests for each size
     for (uint i = 0; i < dma_tsts; i++)
@@ -106,19 +105,15 @@ void dma_start (uint null0, uint null1)
     // report results (in nanoseconds!)
     io_printf (IO_BUF, "size: %3d avg: %4d ns [%4d ns : %4d ns]\n",
 	       dma_size[current_size],
-	       5 * (dma_elapsed_avg[current_size] - 5),
-	       5 * (dma_elapsed_min[current_size] - 5),
-	       5 * (dma_elapsed_max[current_size] - 5)
+	       5 * dma_elapsed_avg[current_size],
+	       5 * dma_elapsed_min[current_size],
+	       5 * dma_elapsed_max[current_size]
       );
 
     // check if done
     if (++current_size >= DMA_SIZES)
     {
-        uint temp = 1000;
-    	while (temp > 0){
-            temp--;
-    	}
-    	break;
+      break;
     }
   }
 

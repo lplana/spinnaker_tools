@@ -1,0 +1,18 @@
+boot
+app_load sdram_dma_profiling.aplx . 1 66
+app_load sdram_dma_profiling.aplx . 2 66
+app_load sdram_dma_profiling.aplx . 3 66
+app_load sdram_dma_profiling.aplx . 4 66
+app_load sdram_dma_profiling.aplx . 5 66
+app_load sdram_dma_profiling.aplx . 6 66
+app_load sdram_dma_profiling.aplx . 7 66
+app_load sdram_dma_profiling.aplx . 8 66
+app_load sdram_dma_profiling.aplx . 9 66
+app_load sdram_dma_profiling.aplx . 10 66
+app_load sdram_dma_profiling.aplx . 11 66
+app_load sdram_dma_profiling.aplx . 12 66
+app_load sdram_dma_profiling.aplx . 13 66
+app_load sdram_dma_profiling.aplx . 14 66
+app_load sdram_dma_profiling.aplx . 15 66
+app_load sdram_dma_profiling.aplx . 16 66
+app_load sdram_dma_profiling.aplx . 17 66
