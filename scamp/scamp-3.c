@@ -1128,14 +1128,17 @@ void proc_100hz(uint a1, uint a2)
     // Counter used to time how long we've been in certain netinit states.
     static uint netinit_biff_tick_counter = 0;
     static uint netinit_p2p_tick_counter = 0;
+    uint cpsr;
 
     // Boot-up related packet sending and boot-phase advancing
     switch (netinit_phase) {
     case NETINIT_PHASE_P2P_ADDR:
 	// Periodically re-send the neighbours their P2P address as
 	// neighbouring chips may take some time to come online.
+        cpsr = cpu_int_disable();
 	p2pc_addr_nn_send(0, 0);
-
+	cpu_int_restore(cpsr);
+	
 	// If no new P2P addresses have been broadcast for a while we can
 	// assume all chips are have a valid P2P address so it is now time to
 	// determine the system's dimensions.
@@ -1225,10 +1228,11 @@ void proc_100hz(uint a1, uint a2)
 	// reduce network load.
 	uint p2pb_period = ((p2p_dims >> 8) * (p2p_dims & 0xFF)) * P2PB_OFFSET_USEC;
 	if (netinit_p2p_tick_counter == 0) {
+	    uint delay = ((p2p_addr >> 8) * (p2p_dims >> 8)) + (p2p_dims & 0xFF);
+	    delay *= 50;
 	    hop_table[p2p_addr] = 0;
 	    rtr_p2p_set(p2p_addr, 7);
-	    timer_schedule_proc(p2pb_nn_send, 0, 0,
-		    (sark_rand() % p2pb_period) + 1);
+	    timer_schedule_proc(p2pb_nn_send, 0, 0, delay);
 	}
 
 	// Once all P2P messages have had ample time to send (and the

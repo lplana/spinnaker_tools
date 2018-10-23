@@ -553,17 +553,17 @@ void nn_rcv_p2pc_addr_pct(uint link, uint data, uint key)
 
     // Update out current guess
     int updated = 0;
-    if ((p2p_addr_guess_x < 0 && x >= 0) || // X has gone non-negative or
-	    (((x < 0) == (p2p_addr_guess_x < 0)) && // Sign is the same and...
-		    (abs(x) < abs(p2p_addr_guess_x)))) { // ...magnitude reduced
-	p2p_addr_guess_x = x;
-	updated |= 1;
+
+    // If we were unknown, assume we now know, or
+    // If we were negative and now are positive, update
+    if ((p2p_addr_guess_x == NO_IDEA) || (p2p_addr_guess_x < 0 && x > 0)) {
+        p2p_addr_guess_x = x;
+        updated = 1;
     }
-    if ((p2p_addr_guess_y < 0 && y >= 0) || // Y has gone non-negative or
-	    (((y < 0) == (p2p_addr_guess_y < 0)) && // Sign is the same and...
-		    (abs(y) < abs(p2p_addr_guess_y)))) { // ...magnitude reduced
-	p2p_addr_guess_y = y;
-	updated |= 2;
+
+    if ((p2p_addr_guess_y == NO_IDEA) || (p2p_addr_guess_y < 0 && y > 0)) {
+        p2p_addr_guess_y = y;
+        updated = 1;
     }
 
     // If guess was updated, broadcast this fact
