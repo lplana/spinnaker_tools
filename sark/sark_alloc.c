@@ -57,49 +57,49 @@ void *sark_xalloc(heap_t *heap, uint size, uint tag, uint flag)
     block_t *free_blk = heap->free;
 
     while (free_blk != NULL) {
-	block_t *next_blk = free_blk->next;
-	block_t *new_blk = (block_t *) ((uchar *) free_blk + size);
+        block_t *next_blk = free_blk->next;
+        block_t *new_blk = (block_t *) ((uchar *) free_blk + size);
 
-	if (new_blk <= free_blk) {	// Request way too big?
-	    break;
-	}
+        if (new_blk <= free_blk) {	// Request way too big?
+            break;
+        }
 
-	if (new_blk > next_blk) {	// Free block too small
-	    prev_blk = free_blk;
-	    free_blk = free_blk->free;
-	    continue;
-	}
+        if (new_blk > next_blk) {	// Free block too small
+            prev_blk = free_blk;
+            free_blk = free_blk->free;
+            continue;
+        }
 
-	if (new_blk + 1 < next_blk) {	// too big - split but don't make zero-size frag.
-	    new_blk->next = next_blk;
-	    free_blk->next = new_blk;
-	    new_blk->free = free_blk->free;
-	    free_blk->free = new_blk;
-	}
+        if (new_blk + 1 < next_blk) {	// too big - split but don't make zero-size frag.
+            new_blk->next = next_blk;
+            free_blk->next = new_blk;
+            new_blk->free = free_blk->free;
+            free_blk->free = new_blk;
+        }
 
-	if (prev_blk) {
-	    prev_blk->free = free_blk->free;
-	} else {
-	    heap->free = free_blk->free;
-	}
+        if (prev_blk) {
+            prev_blk->free = free_blk->free;
+        } else {
+            heap->free = free_blk->free;
+        }
 
-	heap->free_bytes -= size;
+        heap->free_bytes -= size;
 
-	if (flag & ALLOC_LOCK) {
-	    sark_lock_free(cpsr, LOCK_HEAP);
-	}
+        if (flag & ALLOC_LOCK) {
+            sark_lock_free(cpsr, LOCK_HEAP);
+        }
 
-	free_blk->free = (block_t *) (0xffff0000 + entry);
+        free_blk->free = (block_t *) (0xffff0000 + entry);
 
-	if (tag != 0) {
-	    sv->alloc_tag[entry] = free_blk + 1;
-	}
+        if (tag != 0) {
+            sv->alloc_tag[entry] = free_blk + 1;
+        }
 
-	return free_blk + 1;
+        return free_blk + 1;
     }
 
     if (flag & ALLOC_LOCK) {
-	sark_lock_free(cpsr, LOCK_HEAP);
+	    sark_lock_free(cpsr, LOCK_HEAP);
     }
 
     return NULL;
