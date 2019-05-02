@@ -127,7 +127,7 @@ endif
 #     that with the binary to make the APLX file
 #  2) "ls" the APLX file
 $(APP_OUTPUT_DIR)%.aplx: $(BUILD_DIR)%.bin $(BUILD_DIR)%.nm
-	$(MKDIR) $(APP_OUTPUT_DIR)
+	@$(MKDIR) $(APP_OUTPUT_DIR)
 	$(SPINN_TOOLS_DIR)/mkaplx $(BUILD_DIR)$*.nm | $(CAT) - $(BUILD_DIR)$*.bin > $@
 
 # Create a list of the objects in the file using nm
@@ -140,7 +140,7 @@ ifeq ($(GNU),1)
 	$(OC) -O binary -j RO_DATA -j EX_DATA $< $(BUILD_DIR)RO_DATA.bin
 	$(OC) -O binary -j RW_DATA $< $(BUILD_DIR)RW_DATA.bin
 	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $@
-	$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin
+	@$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin
 else
 	$(OC) --bin --output $@ $<
 endif
@@ -155,15 +155,15 @@ $(BUILD_DIR)%.elf: $(OBJECTS) $(BUILD_DIR)%_build.o
 	
 # Build sark_build.o
 $(BUILD_DIR)%_build.c:
-	$(MKDIR) $(BUILD_DIR)
+	@$(MKDIR) $(BUILD_DIR)
 	$(SPINN_TOOLS_DIR)/mkbuild $* > $@
 
 $(BUILD_DIR)%.o: %.c
 	# spinnaker_tools.mk c
-	$(MKDIR) $(BUILD_DIR)
+	@$(MKDIR) $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $<
 	
 $(BUILD_DIR)%.o: %.cpp
 	# spinnaker_tools.mk cpp
-	$(MKDIR) $(BUILD_DIR)
+	@$(MKDIR) $(BUILD_DIR)
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
