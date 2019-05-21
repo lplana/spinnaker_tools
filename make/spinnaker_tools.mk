@@ -51,8 +51,8 @@ ifeq ($(GNU),1)
 
     # GNU Compiler (gcc) settings
     AS := $(GP)-as --defsym GNU=1 -mthumb-interwork -march=armv5te
-    CC_NO_THUMB  := $(GP)-gcc -c -mthumb-interwork -march=armv5te -std=gnu99 -ffreestanding -I $(SPINN_INC_DIR)
-    CXX_NO_THUMB := $(GP)-gcc -c -mthumb-interwork -march=armv5te -std=c++11 -ffreestanding -I $(SPINN_INC_DIR) -fno-rtti -fno-exceptions
+    CC_NO_THUMB  := $(GP)-gcc -pipe -c -mthumb-interwork -march=armv5te -std=gnu99 -ffreestanding -I $(SPINN_INC_DIR)
+    CXX_NO_THUMB := $(GP)-gcc -pipe -c -mthumb-interwork -march=armv5te -std=c++11 -ffreestanding -I $(SPINN_INC_DIR) -fno-rtti -fno-exceptions
     CC_THUMB  := $(CC_NO_THUMB) -mthumb -DTHUMB
     CXX_THUMB := $(CXX_NO_THUMB) -mthumb -DTHUMB
     
@@ -128,18 +128,20 @@ endif
 #  2) "ls" the APLX file
 $(APP_OUTPUT_DIR)%.aplx: $(BUILD_DIR)%.bin $(BUILD_DIR)%.nm
 	@$(MKDIR) $(APP_OUTPUT_DIR)
-	$(SPINN_TOOLS_DIR)/mkaplx $(BUILD_DIR)$*.nm | $(CAT) - $(BUILD_DIR)$*.bin > $@
+	@echo mkaplx $(BUILD_DIR)$*.bin -o $@
+	@$(SPINN_TOOLS_DIR)/mkaplx $(BUILD_DIR)$*.nm | $(CAT) - $(BUILD_DIR)$*.bin > $@
 
 # Create a list of the objects in the file using nm
 $(BUILD_DIR)%.nm: $(BUILD_DIR)%.elf
-	$(NM) $< > $@
+	@$(NM) $< > $@
 	
 # Create a binary file which is the concatenation of RO and RW sections
 $(BUILD_DIR)%.bin: $(BUILD_DIR)%.elf
 ifeq ($(GNU),1)
-	$(OC) -O binary -j RO_DATA -j EX_DATA $< $(BUILD_DIR)RO_DATA.bin
-	$(OC) -O binary -j RW_DATA $< $(BUILD_DIR)RW_DATA.bin
-	$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $@
+	@echo mkbin $< -o $@
+	@$(OC) -O binary -j RO_DATA -j EX_DATA $< $(BUILD_DIR)RO_DATA.bin
+	@$(OC) -O binary -j RW_DATA $< $(BUILD_DIR)RW_DATA.bin
+	@$(SPINN_TOOLS_DIR)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $@
 	@$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin
 else
 	$(OC) --bin --output $@ $<
@@ -151,7 +153,7 @@ endif
 $(BUILD_DIR)%.elf: $(OBJECTS) $(BUILD_DIR)%_build.o
 	# spinnaker_tools.mk elf
 	$(LD) $(LFLAGS) $(OBJECTS) $(BUILD_DIR)$*_build.o $(LIBRARIES) $(SPINN_LIBS) -o $@
-	$(OD) $(BUILD_DIR)$*.txt $@
+	@$(OD) $(BUILD_DIR)$*.txt $@
 	
 # Build sark_build.o
 $(BUILD_DIR)%_build.c:
