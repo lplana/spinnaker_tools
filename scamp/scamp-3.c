@@ -231,12 +231,15 @@ void proc_byte_set(uint a1, uint a2)
 void proc_route_msg(uint arg1, uint arg2);
 
 
-void msg_queue_insert(sdp_msg_t *msg, uint srce_ip)
+// Return true if the value was inserted into the queue
+uint msg_queue_insert(sdp_msg_t *msg, uint srce_ip)
 {
     if (event_queue_proc(proc_route_msg, (uint) msg, srce_ip, PRIO_0) == 0) {
         // if no event is queued free SDP msg buffer
         sark_msg_free(msg);
+        return 0;
     }
+    return 1;
 }
 
 
@@ -295,6 +298,24 @@ __inline void eth_discard()
     er[ETH_RX_CMD] = (uint) er;
 }
 
+static sdp_msg_t busy_msg;
+
+static void return_busy(const sdp_msg_t *msg) {
+    // Disable interrupts while we copy data out of potentially freed message
+    uint cpsr = cpu_irq_disable();
+    busy_msg.flags = msg->flags;
+    busy_msg.tag = msg->tag;
+    busy_msg.dest_port = msg->srce_port;
+    busy_msg.srce_port = msg->dest_port;
+    busy_msg.dest_addr = msg->srce_addr;
+    busy_msg.srce_addr = msg->dest_addr;
+    busy_msg.cmd_rc = RC_BUF;
+    busy_msg.seq = msg->seq;
+    busy_msg.length = ((char *) &busy_msg.arg1) - ((char *) &busy_msg.flags);
+    cpu_int_restore(cpsr);
+
+    eth_send_msg(busy_msg.tag, &busy_msg);
+}
 
 void udp_pkt(uchar *rx_pkt, uint rx_len)
 {
@@ -346,9 +367,12 @@ void udp_pkt(uchar *rx_pkt, uint rx_len)
                 (tag < TAG_TABLE_SIZE && tag_table[tag].flags != 0)) {
             arp_add(rx_pkt+6, ip_hdr->srce);
             eth_discard();
-            msg_queue_insert(msg, srce_ip);
+            if (!msg_queue_insert(msg, srce_ip)) {
+        	return_busy(msg);
+            }
         } else {
             eth_discard();
+            return_busy(msg);
             sark_msg_free(msg);
         }
     } else {                            // Reverse IPTag...
