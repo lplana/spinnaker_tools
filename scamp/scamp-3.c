@@ -183,7 +183,7 @@ volatile uint disp_load = 0 << LOAD_FRAC_BITS;
 //------------------------------------------------------------------------------
 
 
-void iptag_timer()
+void iptag_timer(void)
 {
     iptag_t *tag = tag_table;
 
@@ -199,7 +199,7 @@ void iptag_timer()
 }
 
 
-uint iptag_new()
+uint iptag_new(void)
 {
     for (uint i = FIRST_POOL_TAG; i <= LAST_POOL_TAG; i++) {
         if (tag_table[i].flags == 0) {
@@ -233,7 +233,7 @@ uint transient_tag(uchar *ip, uchar *mac, uint port, uint timeout)
 
 //------------------------------------------------------------------------------
 
-void queue_init()
+void queue_init(void)
 {
     tx_pkt_queue.insert = 1;
 }
@@ -306,7 +306,7 @@ static void timer1_init(uint count)
 //------------------------------------------------------------------------------
 
 
-__inline void eth_discard()
+__inline void eth_discard(void)
 {
     volatile uint *er = (uint *) ETH_REGS;
     er[ETH_RX_CMD] = (uint) er;
@@ -420,7 +420,7 @@ void udp_pkt(uchar *rx_pkt, uint rx_len)
 }
 
 
-void eth_receive()
+void eth_receive(void)
 {
     while (1) {
         uint count = (er[ETH_STATUS] >> 1) & 63;
@@ -1476,7 +1476,7 @@ static uint pll_mult(uint freq)
 //
 // To run CPUs at 200, SDRAM at 130, system bus and router at 133
 //
-void pll_init()
+void pll_init(void)
 {
     sark.cpu_clk = 10;                  // Set for delay_us
     sc[SC_CLKMUX] = 0;                  // Switch to 10MHz everywhere
@@ -1506,7 +1506,7 @@ void pll_init()
 
 //------------------------------------------------------------------------------
 
-void eth_setup()
+void eth_setup(void)
 {
     if (srom.flags & SRF_ETH) {                 // Ethernet present (possibly)
         eth_init(srom.mac_addr);
@@ -1556,7 +1556,7 @@ void sark_config(void)
 }
 
 
-void delegate()
+void delegate(void)
 {
     // choose delegate
     uint del      = NUM_CPUS - 1;         // potential delegate

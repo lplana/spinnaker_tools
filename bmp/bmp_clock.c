@@ -178,7 +178,7 @@
 
 //------------------------------------------------------------------------------
 
-void configure_clocks()
+void configure_clocks(void)
 {
     LPC_SC->SCS = SCS_V;                // Configure main osc.
 

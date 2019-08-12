@@ -109,7 +109,7 @@ pkt_buf_t poke_pkt;
 uint mon_del = 0;
 //------------------------------------------------------------------------------
 
-void nn_init()
+void nn_init(void)
 {
     nn_desc.forward = sv->forward; // V104 20jul12 (was 0x3e)
 
@@ -367,7 +367,7 @@ uint link_write_word(uint addr, uint link, uint *buf, uint timeout)
 //------------------------------------------------------------------------------
 
 
-pkt_buf_t* pkt_buf_get()
+pkt_buf_t* pkt_buf_get(void)
 {
     pkt_buf_t *pkt = pkt_buf_list;
 

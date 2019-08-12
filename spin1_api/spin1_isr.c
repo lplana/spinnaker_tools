@@ -105,7 +105,7 @@ INT_HANDLER cc_rx_ready_isr(void)
 *
 * SOURCE
 */
-INT_HANDLER cc_rx_ready_fiqsr()
+INT_HANDLER cc_rx_ready_fiqsr(void)
 {
     uint rx_status = cc[CC_RSR];        // Get Rx status
 
@@ -200,7 +200,7 @@ INT_HANDLER cc_fr_ready_isr(void)
 *
 * SOURCE
 */
-INT_HANDLER cc_fr_ready_fiqsr()
+INT_HANDLER cc_fr_ready_fiqsr(void)
 {
     uint rx_status = cc[CC_RSR];        // Get Rx status
 
@@ -236,7 +236,7 @@ INT_HANDLER cc_fr_ready_fiqsr()
 *
 * SOURCE
 */
-INT_HANDLER cc_rx_error_isr()
+INT_HANDLER cc_rx_error_isr(void)
 {
     // Consume erroneous packet (also clears interrupt)
 
@@ -265,7 +265,7 @@ INT_HANDLER cc_rx_error_isr()
 *
 * SOURCE
 */
-INT_HANDLER cc_tx_empty_isr()
+INT_HANDLER cc_tx_empty_isr(void)
 {
     //TODO: should use TX_not_full interrupt in SpiNNaker -- more efficient!
 
@@ -277,10 +277,11 @@ INT_HANDLER cc_tx_empty_isr()
     while (tx_packet_queue.start != tx_packet_queue.end
             && ~cc[CC_TCR] & 0x40000000) {
         // Dequeue packet
+	packet_t *packet = &tx_packet_queue.queue[tx_packet_queue.start];
 
-        uint key = tx_packet_queue.queue[tx_packet_queue.start].key;
-        uint data = tx_packet_queue.queue[tx_packet_queue.start].data;
-        uint TCR = tx_packet_queue.queue[tx_packet_queue.start].TCR;
+        uint key = packet->key;
+        uint data = packet->data;
+        uint TCR = packet->TCR;
 
         tx_packet_queue.start = (tx_packet_queue.start + 1) % TX_PACKET_QUEUE_SIZE;
 
@@ -324,15 +325,16 @@ INT_HANDLER cc_tx_empty_isr()
 *
 * SOURCE
 */
-INT_HANDLER dma_done_isr()
+INT_HANDLER dma_done_isr(void)
 {
     // Clear transfer done interrupt in DMAC
     dma[DMA_CTRL] = 0x8;
 
     // Prepare data for callback before triggering a new DMA transfer
 
-    uint completed_id  = dma_queue.queue[dma_queue.start].id;
-    uint completed_tag = dma_queue.queue[dma_queue.start].tag;
+    copy_t *entry = &dma_queue.queue[dma_queue.start];
+    uint completed_id  = entry->id;
+    uint completed_tag = entry->tag;
 
     //TODO: can schedule up to 2 transfers if DMA free
     // Update queue pointer and trigger new transfer if queue not empty
@@ -340,9 +342,10 @@ INT_HANDLER dma_done_isr()
     dma_queue.start = (dma_queue.start + 1) % DMA_QUEUE_SIZE;
 
     if (dma_queue.start != dma_queue.end) {
-        uint *system_address = dma_queue.queue[dma_queue.start].system_address;
-        uint *tcm_address = dma_queue.queue[dma_queue.start].tcm_address;
-        uint  description = dma_queue.queue[dma_queue.start].description;
+	entry = &dma_queue.queue[dma_queue.start];
+        uint *system_address = entry->system_address;
+        uint *tcm_address = entry->tcm_address;
+        uint description = entry->description;
 
         dma[DMA_ADRS] = (uint) system_address;
         dma[DMA_ADRT] = (uint) tcm_address;
@@ -378,7 +381,7 @@ INT_HANDLER dma_done_isr()
 *
 * SOURCE
 */
-INT_HANDLER dma_done_fiqsr()
+INT_HANDLER dma_done_fiqsr(void)
 {
     // Clear transfer done interrupt in DMAC
 
@@ -386,8 +389,9 @@ INT_HANDLER dma_done_fiqsr()
 
     // Prepare data for callback before triggering a new DMA transfer
 
-    uint completed_id  = dma_queue.queue[dma_queue.start].id;
-    uint completed_tag = dma_queue.queue[dma_queue.start].tag;
+    copy_t *entry = &dma_queue.queue[dma_queue.start];
+    uint completed_id  = entry->id;
+    uint completed_tag = entry->tag;
 
     //TODO: can schedule up to 2 transfers if DMA free
 
@@ -396,9 +400,10 @@ INT_HANDLER dma_done_fiqsr()
     dma_queue.start = (dma_queue.start + 1) % DMA_QUEUE_SIZE;
 
     if (dma_queue.start != dma_queue.end) {
-        uint *system_address = dma_queue.queue[dma_queue.start].system_address;
-        uint *tcm_address = dma_queue.queue[dma_queue.start].tcm_address;
-        uint  description = dma_queue.queue[dma_queue.start].description;
+	copy_t *entry = &dma_queue.queue[dma_queue.start];
+        uint *system_address = entry->system_address;
+        uint *tcm_address = entry->tcm_address;
+        uint description = entry->description;
 
         dma[DMA_ADRS] = (uint) system_address;
         dma[DMA_ADRT] = (uint) tcm_address;
@@ -424,7 +429,7 @@ INT_HANDLER dma_done_fiqsr()
 *
 * SOURCE
 */
-INT_HANDLER dma_error_isr()
+INT_HANDLER dma_error_isr(void)
 {
     //TODO: update to other dma error sources when supported
     // deal with write buffer errors
@@ -452,7 +457,7 @@ INT_HANDLER dma_error_isr()
 *
 * SOURCE
 */
-INT_HANDLER timer1_isr()
+INT_HANDLER timer1_isr(void)
 {
     // Clear timer interrupt
     tc[T1_INT_CLR] = 1;
@@ -497,7 +502,7 @@ INT_HANDLER timer1_isr()
 *
 * SOURCE
 */
-INT_HANDLER timer1_fiqsr()
+INT_HANDLER timer1_fiqsr(void)
 {
     // clear timer interrupt
     tc[T1_INT_CLR] = 1;
@@ -523,7 +528,7 @@ INT_HANDLER timer1_fiqsr()
 *
 * SOURCE
 */
-INT_HANDLER soft_int_isr()
+INT_HANDLER soft_int_isr(void)
 {
     // Clear software interrupt in the VIC
     vic[VIC_SOFT_CLR] = (1 << SOFTWARE_INT);
@@ -554,7 +559,7 @@ INT_HANDLER soft_int_isr()
 *
 * SOURCE
 */
-INT_HANDLER soft_int_fiqsr()
+INT_HANDLER soft_int_fiqsr(void)
 {
     // Clear software interrupt in the VIC
     vic[VIC_SOFT_CLR] = (1 << SOFTWARE_INT);

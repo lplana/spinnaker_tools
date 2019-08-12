@@ -61,7 +61,7 @@ static uint centi_ms;   // Counts 0 to 9 in ms
 //------------------------------------------------------------------------------
 
 
-INT_HANDLER pkt_tx_int() // SPIN2 - optimise for register order??
+INT_HANDLER pkt_tx_int(void) // SPIN2 - optimise for register order??
 {
     pkt_queue_t *txq = &tx_pkt_queue;
     txq->remove = (txq->remove + 1) % PKT_QUEUE_SIZE;
@@ -150,7 +150,7 @@ __asm void eth_rx_int(void)
 //------------------------------------------------------------------------------
 
 
-INT_HANDLER pkt_mc_int()
+INT_HANDLER pkt_mc_int(void)
 {
     uint data = cc[CC_RXDATA];
     uint key = cc[CC_RXKEY];
@@ -167,7 +167,7 @@ INT_HANDLER pkt_mc_int()
 }
 
 
-INT_HANDLER pkt_nn_int()
+INT_HANDLER pkt_nn_int(void)
 {
     uint ctrl = cc[CC_RSR];
     uint data = cc[CC_RXDATA];
@@ -192,7 +192,7 @@ INT_HANDLER pkt_nn_int()
 }
 
 
-INT_HANDLER pkt_p2p_int()
+INT_HANDLER pkt_p2p_int(void)
 {
     uint data = cc[CC_RXDATA];
     uint key = cc[CC_RXKEY];
@@ -214,7 +214,7 @@ INT_HANDLER pkt_p2p_int()
 //------------------------------------------------------------------------------
 
 
-INT_HANDLER ms_timer_int()
+INT_HANDLER ms_timer_int(void)
 {
     tc[T1_INT_CLR] = (uint) tc;         // Clear interrupt
 
@@ -260,7 +260,7 @@ INT_HANDLER ms_timer_int()
 
 uint next_box;
 
-INT_HANDLER ap_int()
+INT_HANDLER ap_int(void)
 {
     do {
         next_box++;

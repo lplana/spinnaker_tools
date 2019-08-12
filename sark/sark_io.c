@@ -66,7 +66,7 @@ static const char hex[] = "0123456789abcdef";
 // cases a buffer is allocated from the heap and initialised. A run time
 // error occurs if the allocation fails.
 
-static sdp_msg_t *io_std_init()
+static sdp_msg_t *io_std_init(void)
 {
     sdp_msg_t *msg = sark_alloc(1, sizeof(sdp_msg_t));
     if (msg == NULL) {
@@ -89,7 +89,7 @@ static sdp_msg_t *io_std_init()
 }
 
 
-static iobuf_t *io_buf_init()
+static iobuf_t *io_buf_init(void)
 {
     iobuf_t *iobuf = sark_xalloc(sv->sys_heap,
             sizeof(iobuf_t) + sv->iobuf_size, 0, 1);

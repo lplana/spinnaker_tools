@@ -92,7 +92,7 @@ void proc_queue_add(event_t *e)
 // Execute a list of events (in the order in which they were added to the
 // list). Events are returned to the free queue after execution.
 
-void proc_queue_run()
+void proc_queue_run(void)
 {
     uint32_t cpsr = cpu_int_off();
 

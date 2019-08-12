@@ -49,7 +49,7 @@ INT_HANDLER sark_fiq_han(void)
 //------------------------------------------------------------------------------
 
 
-INT_HANDLER txpkt_int_han()
+INT_HANDLER txpkt_int_han(void)
 {
     event.pkt_remove = (event.pkt_remove + 1) & (event.pkt_size - 1);
 

@@ -30,7 +30,7 @@
 #include "sark.h"
 
 
-void phy_reset()
+void phy_reset(void)
 {
     er[ETH_PHY_CTRL] = 0;
     sark_delay_us(10);

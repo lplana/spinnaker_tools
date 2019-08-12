@@ -53,7 +53,7 @@ bool lcd_active;
 // Use I2SCLH = I2SCLL = 62  for 200 kHz
 // Use I2SCLH = I2SCLL = 31  for 400 kHz
 
-void configure_i2c()
+void configure_i2c(void)
 {
     clock_div(CLKPWR_PCLKSEL_I2C0, CLKPWR_PCLKSEL_CCLK_DIV_4);
     clock_div(CLKPWR_PCLKSEL_I2C2, CLKPWR_PCLKSEL_CCLK_DIV_4);

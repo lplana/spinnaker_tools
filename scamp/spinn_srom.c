@@ -52,14 +52,14 @@
 //------------------------------------------------------------------------------
 
 
-static void ncs_low()
+static void ncs_low(void)
 {
     sc[GPIO_CLR] = SERIAL_NCS;
     sark_delay_us(1);
 }
 
 
-static void ncs_high()
+static void ncs_high(void)
 {
     sark_delay_us(1);
     sc[GPIO_SET] = SERIAL_NCS;
@@ -67,7 +67,7 @@ static void ncs_high()
 }
 
 
-static void clock()
+static void clock(void)
 {
     sark_delay_us(1);
     sc[GPIO_SET] = SERIAL_CLK;
@@ -95,7 +95,7 @@ static void send(uint v, uint n)
 }
 
 
-static uint read8()
+static uint read8(void)
 {
     uint r = 0;
     uint n = 8;

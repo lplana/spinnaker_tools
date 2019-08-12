@@ -25,7 +25,7 @@
 /* simulation control */
 // ---------------------
 
-uchar leadAp;                           // lead appl. core has special functions
+static uchar leadAp;                    // lead appl. core has special functions
 
 static volatile uint run;               // controls simulation start/exit
 static volatile uint paused;            // indicates when paused
@@ -35,13 +35,13 @@ static uint timer_tick;                 // timer tick period
 static uint timer_phase;                // additional phase on starting the timer
 
 // default fiq handler -- restored after simulation
-isr_t old_vector;
-uint old_select;
-uint old_enable;
+static isr_t old_vector;
+static uint old_select;
+static uint old_enable;
 
-int fiq_event = -1;
-int mc_pkt_prio = -2;
-int fr_pkt_prio = -2;
+static int fiq_event = -1;
+static int mc_pkt_prio = -2;
+static int fr_pkt_prio = -2;
 
 
 // ---------------
@@ -62,6 +62,7 @@ tx_packet_queue_t tx_packet_queue;
 /* scheduler/dispatcher */
 // -----------------------
 static task_queue_t task_queue[NUM_PRIORITIES-1];  // priority <= 0 is non-queueable
+// Warning: SARK knows about this!
 cback_t callback[NUM_EVENTS];
 uchar user_pending = FALSE;
 uint user_arg0;
@@ -82,7 +83,7 @@ uint user_arg1;
 // ----------------
 /* debug, warning and diagnostics support */
 // ----------------
-diagnostics_t diagnostics;
+static diagnostics_t diagnostics;
 
 // ------------------------------------------------------------------------
 // functions
@@ -128,7 +129,7 @@ uint spin1_int_enable(void);
 *
 * SOURCE
 */
-void configure_communications_controller()
+static void configure_communications_controller(void)
 {
     // initialize transmitter control to send MC packets
     cc[CC_TCR] = 0x00000000;
@@ -151,7 +152,7 @@ void configure_communications_controller()
 *
 * SOURCE
 */
-void configure_dma_controller()
+static void configure_dma_controller(void)
 {
     dma[DMA_CTRL] = 0x3f; // Abort pending and active transfers
     dma[DMA_CTRL] = 0x0d; // clear possible transfer done and restart
@@ -199,7 +200,7 @@ void configure_dma_controller()
 *
 * SOURCE
 */
-void configure_timer1(uint time, uint phase)
+static void configure_timer1(uint time, uint phase)
 {
     // do not enable yet!
     tc[T1_CONTROL] = 0;
@@ -232,7 +233,7 @@ void configure_timer1(uint time, uint phase)
 *
 * SOURCE
 */
-void configure_vic(uint enable_timer)
+static void configure_vic(uint enable_timer)
 {
     uint fiq_select = 0;
     uint int_select = ((1 << TIMER1_INT)   |
@@ -329,7 +330,7 @@ void configure_vic(uint enable_timer)
 *******/
 
 
-void spin1_pause()
+void spin1_pause(void)
 {
     vic[VIC_DISABLE] = (1 << TIMER1_INT);
     configure_timer1(timer_tick, timer_phase);
@@ -338,7 +339,7 @@ void spin1_pause()
 }
 
 
-void resume()
+static void resume(void)
 {
     if (resume_sync == 1) {
         resume_sync = 0;
@@ -366,7 +367,7 @@ void spin1_resume(sync_bool sync)
 }
 
 
-uint resume_wait()
+static uint resume_wait(void)
 {
     uint bit = 1 << sark.virt_cpu;
 
@@ -412,7 +413,7 @@ uint resume_wait()
 *
 * SOURCE
 */
-void dispatch()
+static void dispatch(void)
 {
     uint i;
     uint cpsr;
@@ -599,7 +600,7 @@ void spin1_callback_off(uint event_id)
 *
 * SOURCE
 */
-void deschedule(uint event_id)
+static void deschedule(uint event_id)
 {
     uint cpsr = spin1_irq_disable();
 
@@ -631,7 +632,7 @@ void deschedule(uint event_id)
 *
 * SOURCE
 */
-uint spin1_get_simulation_time()
+uint spin1_get_simulation_time(void)
 {
     return ticks;
 }
@@ -706,7 +707,7 @@ void spin1_set_timer_tick_and_phase(uint time, uint phase)
 *
 * SOURCE
 */
-void clean_up()
+static void clean_up(void)
 {
     uint cpsr = spin1_int_disable();
 
@@ -744,7 +745,7 @@ void clean_up()
 *
 * SOURCE
 */
-void report_debug()
+static void report_debug(void)
 {
 #if API_DEBUG == TRUE
     if (leadAp) {       // Only the leader appl. core reports router data
@@ -787,7 +788,7 @@ void report_debug()
 *
 * SOURCE
 */
-void report_warns()
+static void report_warns(void)
 {
 #if API_WARN == TRUE        // report warnings
     if (diagnostics.warnings & TASK_QUEUE_FULL) {
@@ -835,7 +836,7 @@ void spin1_rte(rte_code code)
     sv->led_period = 8;
 }
 
-uint start(sync_bool sync, uint start_paused)
+static uint start(sync_bool sync, uint start_paused)
 {
     paused = start_paused;
     if (paused) {
@@ -939,7 +940,7 @@ uint spin1_start(sync_bool sync)
     return start(sync, 0);
 }
 
-uint spin1_start_paused()
+uint spin1_start_paused(void)
 {
     return start(SYNC_NOWAIT, 1);
 }
@@ -1059,7 +1060,7 @@ void spin1_memcpy(void *dst, void const *src, uint len)
 *
 * SOURCE
 */
-void spin1_flush_rx_packet_queue()
+void spin1_flush_rx_packet_queue(void)
 {
     deschedule(MC_PACKET_RECEIVED);
     deschedule(MCPL_PACKET_RECEIVED);
@@ -1081,7 +1082,7 @@ void spin1_flush_rx_packet_queue()
 *
 * SOURCE
 */
-void spin1_flush_tx_packet_queue()
+void spin1_flush_tx_packet_queue(void)
 {
     uint cpsr = spin1_irq_disable();
 
@@ -1355,6 +1356,7 @@ uint spin1_set_mc_table_entry(uint entry, uint key, uint mask, uint route)
 *
 * SOURCE
 */
+// Warning: SARK knows about this!
 void schedule_sysmode(uchar event_id, uint arg0, uint arg1)
 {
     if (callback[event_id].priority <= 0) {

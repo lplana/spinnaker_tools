@@ -736,7 +736,7 @@ void can_timer(void)
 //------------------------------------------------------------------------------
 
 
-void CAN_IRQHandler()
+void CAN_IRQHandler(void)
 {
     uint32_t icr = LPC_CAN1->ICR;
 

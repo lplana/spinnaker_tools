@@ -791,7 +791,7 @@ void reset_spin(uint32_t code)
 // Set up a 300kHz 120 degree duty-cycle waveform on three outputs
 // MC0B0, MC0B1, MC0B2 (NB outputs not enabled on Spin4)
 
-static void configure_mcpwm()
+static void configure_mcpwm(void)
 {
     clock_div(CLKPWR_PCLKSEL_MC, CLKPWR_PCLKSEL_CCLK_DIV_1);
 
