@@ -63,7 +63,7 @@ LM_LICENSE_FILE=PORT@SERVER.cs.man.ac.uk:$LM_LICENSE_FILE
 
 # *** EDIT HERE ***
 
-GNUTOOLS=/local/temples/gcc-arm-none-eabi-4_9-2015q3
+GNUTOOLS=/home/rjames/SpiNNaker_devel/gcc-arm-none-eabi-5_4-2016q3
 
 GNUBIN=$GNUTOOLS/bin
 
