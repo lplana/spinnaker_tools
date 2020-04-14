@@ -254,6 +254,7 @@ INT_HANDLER cc_tx_empty_isr()
 
     // Clear the sticky TX full bit
     cc[CC_TCR] = TX_TCR_MCDEFAULT;
+    (void) cc[CC_TCR];  // needed to avoid a cc bug
 
     // Drain queue: send packets while queue not empty and CC not full
 
@@ -276,6 +277,7 @@ INT_HANDLER cc_tx_empty_isr()
 	}
 
 	cc[CC_TXKEY]  = key;
+	(void) cc[CC_TCR];  // needed to avoid a cc bug
     }
 
     // If queue empty turn off tx_empty interrupt
